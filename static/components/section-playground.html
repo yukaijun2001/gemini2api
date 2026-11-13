@@ -1,0 +1,60 @@
+<link rel="stylesheet" href="components/section-playground.css?v=8">
+<!-- 模型测试 Section -->
+<section id="playground" class="section" aria-labelledby="playground-title">
+    <h2 id="playground-title"><i class="fas fa-flask"></i> <span data-i18n="playground.title">模型测试</span></h2>
+
+    <div class="playground-container">
+        <!-- Left Panel: Request Config -->
+        <div class="playground-panel">
+            <h3 data-i18n="playground.config">请求配置</h3>
+            <div class="form-group">
+                <label class="form-label" for="pg-model" data-i18n="playground.model">模型</label>
+                <select id="pg-model" class="form-control">
+                    <option value="">加载中...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="pg-thinking-level" data-i18n="playground.thinking">思考档位</label>
+                <select id="pg-thinking-level" class="form-control">
+                    <option value="low" data-i18n="playground.thinkingLevel.low" selected>低</option>
+                    <option value="medium" data-i18n="playground.thinkingLevel.medium">中</option>
+                    <option value="high" data-i18n="playground.thinkingLevel.high">高</option>
+                    <option value="default" data-i18n="playground.thinkingLevel.default">按默认档（不传参数）</option>
+                </select>
+                <span class="form-hint" data-i18n="playground.thinkingHint">档位越高想得越深、也越慢；思考过程显示在回答上方（简单问题可能没有）</span>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="pg-message" data-i18n="playground.message">消息内容</label>
+                <textarea id="pg-message" class="form-control" data-i18n-placeholder="playground.inputPlaceholder" placeholder="输入消息..." rows="10"></textarea>
+                <span class="form-hint" data-i18n="playground.hint">Enter 发送，Shift + Enter 换行</span>
+            </div>
+            <div class="form-group">
+                <label class="form-label" data-i18n="playground.images">图片</label>
+                <div id="pg-image-preview" class="pg-image-preview"></div>
+                <button type="button" class="btn btn-outline btn-sm" id="pg-image-btn">
+                    <i class="fas fa-image"></i> <span data-i18n="playground.addImage">添加图片</span>
+                </button>
+                <input type="file" id="pg-image-input" accept="image/*" multiple hidden>
+            </div>
+            <div class="flex gap-1">
+                <button class="btn btn-primary" id="pg-send">
+                    <i class="fas fa-paper-plane"></i> <span data-i18n="playground.send">发送</span>
+                </button>
+                <button class="btn btn-outline" id="pg-clear-btn">
+                    <i class="fas fa-redo-alt"></i> <span data-i18n="playground.newChat">新对话</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Panel: Chat -->
+        <div class="playground-panel chat-panel">
+            <h3 data-i18n="playground.chat">对话</h3>
+            <div id="pg-chat" class="chat-container">
+                <div class="chat-placeholder">
+                    <i class="fas fa-comment-dots"></i>
+                    <p data-i18n="playground.startChat">发送消息开始对话</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

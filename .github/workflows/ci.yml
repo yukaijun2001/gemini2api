@@ -1,0 +1,66 @@
+name: CI
+
+# Quality gate: lint + automated tests on every push/PR. Complements
+# docker-publish.yml (which only runs on version tags).
+on:
+  push:
+    branches: ["main", "fix/**", "feat/**", "chore/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      # Hard quality gate: lint + tests BLOCK the workflow on failure so
+      # regressions (failing tests, E9/F-class lint errors) cannot merge green.
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Run tests (pytest)
+        run: pytest
+
+  dependency-audit:
+    name: Dependency Audit (report-only)
+    runs-on: ubuntu-latest
+    # Non-blocking for now: surfaces known CVEs in pinned deps without failing
+    # the build. Promote to a hard gate once the dependency baseline is clean.
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: pip-audit
+        run: |
+          python -m pip install --upgrade pip pip-audit
+          pip-audit --requirement requirements.txt

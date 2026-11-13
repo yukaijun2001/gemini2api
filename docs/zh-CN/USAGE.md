@@ -1,0 +1,796 @@
+# 使用指南
+
+本文档详细说明如何使用 Gemini2API 服务。
+
+## Web 管理面板
+
+### 访问面板
+
+启动服务后，在浏览器中访问：
+
+```
+http://localhost:5918
+```
+
+或使用服务器 IP：
+
+```
+http://服务器IP:5918
+```
+
+### 登录
+
+首次访问需要输入 API Key 进行登录。API Key 在首次启动时自动生成，可在日志中查看。
+
+### 仪表盘
+
+仪表盘显示服务的实时状态和概览信息。
+
+#### 系统信息卡片
+
+显示以下信息：
+- **版本**：Gemini2API 版本号
+- **Python 版本**：运行环境 Python 版本
+- **操作系统**：服务器操作系统和内核版本
+- **内存使用**：当前内存占用 / 总内存
+- **CPU 使用率**：实时 CPU 使用百分比
+- **进程 ID**：服务进程 ID
+- **运行模式**：Docker 或直接运行
+- **运行时间**：服务启动以来的运行时长
+
+#### 二维码卡片
+
+显示二维码图片和文字配置，支持：
+- 点击图片放大查看
+- 从 `api/` 目录动态加载配置
+- 修改无需重建容器
+
+#### 账号状态总览
+
+显示账号池的实时状态：
+- 总账号数
+- 活跃账号数
+- 轮询策略
+- 每个账号的状态和请求计数
+
+#### 可用模型列表
+
+显示当前可用的所有模型：
+- Gemini Web 模型
+- 第三方 API Key 池中的模型
+
+### 账号管理
+
+#### 查看账号列表
+
+显示所有已配置的账号及其状态：
+- 账号 ID
+- 标签
+- 状态（healthy/unhealthy）
+- 最后检测时间
+- 请求计数
+
+#### 添加账号
+
+点击"添加账号"按钮，填入以下信息：
+- **PSID**：`__Secure-1PSID` Cookie 值
+- **PSIDTS**：`__Secure-1PSIDTS` Cookie 值
+- **标签**：账号描述（可选）
+
+#### 更新 Cookie
+
+选择账号，点击"更新 Cookie"按钮，输入新的 Cookie 值。无需重启服务，立即生效。
+
+#### 删除账号
+
+选择账号，点击"删除"按钮确认删除。
+
+#### 检测账号
+
+点击"检测"按钮，立即检测该账号的健康状态。
+
+### Playground 测试
+
+在线测试 API 请求，支持：
+- 选择模型
+- 输入消息
+- 配置参数（temperature、max_tokens 等）
+- 实时查看响应
+- 支持流式和非流式请求
+
+### 实时日志
+
+显示结构化日志，支持：
+- **方向过滤**：查看最新日志或最早日志
+- **文本搜索**：按关键词搜索日志
+- **分页显示**：每页 15 条记录
+- **JSON 详情**：点击日志行查看完整 JSON 信息
+- **日志持久化**：重启服务后日志不丢失
+
+### 使用统计
+
+显示服务的使用统计信息：
+- 累计请求数
+- 错误率
+- 平均延迟
+- Cookie 轮换成功率
+- 历史趋势图表
+
+### API Key 管理
+
+集中管理第三方大模型 API Key：
+- **OpenAI**：支持 GPT-4、GPT-4o 等模型
+- **Anthropic**：支持 Claude 系列模型
+- **Google Gemini**：支持 Gemini API Key
+- **OpenRouter**：支持 OpenRouter 平台的模型
+- **自定义**：支持其他兼容 OpenAI 格式的 API
+
+#### 添加 API Key
+
+1. 点击"添加 Key"按钮
+2. 选择 Provider（OpenAI、Anthropic 等）
+3. 输入 API Key
+4. 选择模型
+5. 点击保存
+
+#### 导入导出
+
+- **导出**：导出所有 API Key（默认脱敏，可加 `?reveal=true` 取明文）
+- **导入**：批量导入 API Key（JSON 格式）
+
+#### 启用/禁用
+
+点击 Key 行的开关按钮，可快速启用或禁用该 Key。
+
+### 访问密钥
+
+签发可分发给不同人的入站访问密钥。与上面的「API Key 管理」无关——那管的是第三方**出站** Key，这里管的是「谁能调用本服务」。
+
+#### 签发密钥
+
+1. 点击"签发密钥"
+2. 填「名称」（例如对方的名字，方便事后对账）
+3. 「数量」可一次签发多把（上限 50），名称会自动编号为 `名称-1`、`名称-2`……
+4. 「有效天数（首次使用起算）」与「绝对过期时间」二选一，都留空则永不过期
+5. 「请求数上限」留空 = 不限
+6. 「绑定账号」/「允许模型」不勾选 = 不限制
+7. 点击"签发"，在列表里用"复制密钥"把明文交给对方
+
+#### 列表与管理
+
+每行显示状态（有效 / 未激活 / 已停用 / 已过期 / 已超额）、有效期、用量和权限范围，可以：
+
+- **编辑**：改名称、有效期、上限、绑定账号与允许模型
+- **启用 / 停用**：停用后持有人立刻 401，密钥仍留在列表里可随时恢复
+- **重置用量**：把请求计数清零，超额的密钥可继续用
+- **删除**：吊销密钥，使用它的客户端立即断连
+
+#### 三件要知道的事
+
+1. `.env` 里的 `API_KEY` 仍然全权有效，访问密钥只是附加的一层；一把都不签发时行为与旧版完全一致。
+2. 访问密钥**只能调业务 API**，访问不到 `/admin/*`——管理面仍由 `API_KEY` / `ADMIN_API_KEY` 把守，所以可以放心把密钥发给外人。
+3. 每个业务请求都会 +1，**包括 `GET /v1/models`**。有些客户端每轮对话前都会列一次模型，等于一轮消耗 2 次，设「请求数上限」时记得留余量。
+
+#### Token 用量与估算成本
+
+列表里除「用量」（请求计次）之外，还有两列：
+
+- **Token（估算）**：这把密钥累计的输入 / 输出 token。
+- **估算成本 (USD)**：按价格表把上面的 token 折算成美元，数字前恒带 `≈`。
+
+⚠️ **这不是账单，是参考值。** 必须知道的三点：
+
+1. 本服务走的是 Gemini **网页版**，**本身不产生任何费用**。这一列回答的是「同样的内容若走官方 API 大约要多少钱」。
+2. token 数由 `len(文本) / 4` 估算，**不是真正的分词器**。对中文会明显低估（1 个汉字常常就是 1 个 token，这里只算 0.25 个），所以中文长对话的真实用量可能是这个数字的 3-4 倍。
+3. 价格表按官方公布的标准付费档拍平，未计长上下文阶梯与未来调价；思考链 token 计进输出（与官方计费口径一致）。走第三方兜底的请求不计入。
+
+**只统计、不限额**：token 与美元一个字都不参与放行判定，额度限制仍然只有「请求数上限」（计次）这一条。「重置用量」会把请求计数与 token / 成本一起清零。
+
+价格表用环境变量 `TOKEN_PRICES` 配置，形如 `gemini-pro=2.0/12.0,gemini-flash=0.75/3.75`（公开模型名=输入价/输出价，单位 USD / 百万 token）。留空 = 用内置默认值；写错的条目静默忽略，配不到价格的模型显示 `—`（而不是回落到某个「差不多」的价）。崩溃时最多丢 10 秒的落账，与请求计数现有口径一致。
+
+### 设置
+
+可视化管理运行时配置，修改即时生效。
+
+#### 性能设置
+
+- **轮询策略**：round-robin（轮询）或 failover（故障转移）
+- **每账号最大并发数**：1-10
+- **Cookie 刷新周期**：1-60 分钟
+- **失败重试次数**：1-5 次
+
+#### 限流设置
+
+- **启用限流**：开启/关闭
+- **限流窗口**：时间窗口（秒）
+- **窗口内最大请求数**：限制数量
+
+#### 健康检查设置
+
+- **启用健康检查**：开启/关闭
+- **检查间隔**：1-60 分钟
+
+#### 日志设置
+
+- **日志级别**：debug/info/warning/error
+- **启用日志记录**：开启/关闭
+
+#### 网页会话清理
+
+- **启用自动清理**：开启/关闭
+- **保留时长**：保留多少小时内的会话（默认 24 小时），超过此时长的会话将被清理
+- **清理间隔**：多久执行一次清理任务（默认 6 小时）
+- **跳过置顶会话**：是否保留置顶的会话（默认开启）
+
+> 用途：API 每次对话都会在 Gemini 网页端（gemini.google.com）留下会话记录，长期使用会堆积大量历史会话。自动清理功能会定时删除超过保留时长的旧会话，置顶会话永不删除。保留时长（默认 24 小时）远大于反代上下文窗口（6 小时），正在续接的多轮对话不会被误删。对于重度账号堆积数百会话的情况，清理任务会循环执行直到清理完毕。
+
+### 模型映射
+
+将请求中的模型名映射到实际使用的模型。
+
+#### 添加映射
+
+例如，将 `gpt-4o` 映射到 `gemini-2.5-pro`：
+1. 点击"添加映射"
+2. 输入别名：`gpt-4o`
+3. 输入目标模型：`gemini-2.5-pro`
+4. 保存
+
+#### 使用映射
+
+客户端请求时使用别名：
+```bash
+curl -X POST http://localhost:5918/openai/v1/chat/completions \
+  -H "Authorization: Bearer sk-你的API密钥" \
+  -d '{"model": "gpt-4o", "messages": [...]}'
+```
+
+服务会自动将 `gpt-4o` 转换为 `gemini-2.5-pro`。
+
+### 主题切换
+
+右上角点击主题按钮，在深色和浅色主题之间切换。
+
+### 服务重启
+
+右上角点击重启按钮，可一键重启服务。
+
+### 登出
+
+右上角点击登出按钮，退出登录。
+
+## 图片上传
+
+Gemini2API 支持多模态内容，包括图片和文件上传。支持三种 API 格式的图片传输。
+
+### OpenAI 格式
+
+在 `messages` 数组中使用 `image_url` 类型，支持 Base64 Data URI 和远程 HTTP URL：
+
+**Base64 图片示例**：
+
+```bash
+curl -X POST http://localhost:5918/openai/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-你的API密钥" \
+  -d '{
+    "model": "gemini-flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {"type": "text", "text": "这是什么"},
+          {
+            "type": "image_url",
+            "image_url": {
+              "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+            }
+          }
+        ]
+      }
+    ]
+  }'
+```
+
+**远程 URL 图片示例**：
+
+```bash
+curl -X POST http://localhost:5918/openai/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-你的API密钥" \
+  -d '{
+    "model": "gemini-flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {"type": "text", "text": "分析这张图片"},
+          {
+            "type": "image_url",
+            "image_url": {
+              "url": "https://example.com/image.jpg"
+            }
+          }
+        ]
+      }
+    ]
+  }'
+```
+
+### Claude 格式
+
+在 `content` 数组中使用 `image` 类型：
+
+```bash
+curl -X POST http://localhost:5918/claude/v1/messages \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-你的API密钥" \
+  -d '{
+    "model": "gemini-flash",
+    "max_tokens": 1024,
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {"type": "text", "text": "这是什么"},
+          {
+            "type": "image",
+            "source": {
+              "type": "base64",
+              "media_type": "image/png",
+              "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+            }
+          }
+        ]
+      }
+    ]
+  }'
+```
+
+### Gemini 原生格式
+
+在 `parts` 数组中使用 `inlineData`：
+
+```bash
+curl -X POST http://localhost:5918/gemini/v1beta/models/gemini-flash:generateContent \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-你的API密钥" \
+  -d '{
+    "contents": [
+      {
+        "parts": [
+          {"text": "这是什么"},
+          {
+            "inlineData": {
+              "mimeType": "image/png",
+              "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+            }
+          }
+        ]
+      }
+    ]
+  }'
+```
+
+### Web 面板上传
+
+在 Playground 测试页面，点击"添加图片"按钮可直接上传本地图片进行测试。
+
+## AI 生成图片
+
+Gemini2API 支持通过 AI 生成图片，靠 prompt 触发：只要在对话中说"画一张……图"或英文 "generate an image of..."，即可生成图片。三个对话接口都支持——OpenAI 的 `/v1/chat/completions`、Claude 的 `/v1/messages`、Gemini 原生的 `/v1beta/...:generateContent`。此外还提供了专用的 OpenAI 兼容接口 `/v1/images/generations`。
+
+### 对话生图
+
+在对话接口的 `messages` 中描述要生成的图片即可：
+
+```bash
+curl -X POST http://localhost:5918/openai/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-你的API密钥" \
+  -d '{
+    "model": "gemini-pro",
+    "messages": [
+      {"role": "user", "content": "generate an image of a cute cat"}
+    ]
+  }'
+```
+
+### 专用生图接口
+
+通过 `/v1/images/generations` 接口直接生成图片：
+
+```bash
+curl -X POST http://localhost:5918/v1/images/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-你的API密钥" \
+  -d '{
+    "model": "gemini-pro",
+    "prompt": "a cute cat",
+    "n": 1
+  }'
+```
+
+### 返回格式说明
+
+- **对话接口**：返回图片的本地访问 URL（形如 `http://你的地址/images/xxx.png`），可直接打开或在前端渲染。
+- **`/v1/images/generations`**：返回 `b64_json` 字段（Base64 编码的图片数据）。
+- 生成的图片均为全分辨率原图（如 1408×768）。
+
+## 正文还原（Canvas 与控制标记）
+
+Gemini 网页端有两类"正文不是正文"的情况，服务会在把回答交给客户端之前统一处理（流式与非流式口径完全一致）：
+
+**Canvas 面板**：写较长代码/文档时，网页端会把内容搬进 Canvas 面板，回答正文里只留一个 `http://googleusercontent.com/immersive_entry_chip/N` 占位链接。服务会从响应里取出该 Canvas 的真实内容还原进正文（代码自动补上带语言的 Markdown 围栏，文档原样内联）。取不到真实内容时**剥掉死链并留一句可读说明**，不会把一条打不开的 URL 当答案交付，也不会让正文变成空的。
+
+**控制标记**：正文里可能混进三类内部标记，都会被清掉：
+
+| 标记 | 处理方式 |
+|------|---------|
+| `<ctrl94>thought…<ctrl95>` | 内容**归入思考链**（`reasoning_content` / Anthropic `thinking` 块），不是直接丢弃。只处理**成对**出现的；未闭合的标记原样保留，绝不因为少一个结束标记就把后面的正文当成思考切掉 |
+| `?code_reference&code_event_index=N` / `?code_stdout&…` | 只摘掉围栏 info string 里的这段标记，**围栏正文一字不动** |
+| `http://googleusercontent.com/card_content/N` | 删除（客户端访问无效的死链） |
+
+正文里只是"提到"这些字样（例如让模型解释 `<ctrl94>` 是什么）时不会被误伤。
+
+**已知边界**：如果回答正文里真的出现一对**成对**的 `<ctrl94>…<ctrl95>`（比如你贴了一段含这两个字面量的日志、让模型原样回显），中间那段会被当成思考内容移出正文。OpenAI 协议下它在 `reasoning_content` 里、Anthropic 协议传了 `thinking` 时它在 `thinking` 块里，都取得回来；但原生 Gemini 协议与不传 `thinking` 的 `/v1/messages` 没有承载思考的通道，那段文字就拿不回来了。遇到这种内容，请用 OpenAI 协议，或把日志放进代码块之外再加一层转义。
+
+## 支持的模型
+
+### 对外固定稳定模型名
+
+Gemini2API 对外提供 3 个固定的稳定模型名，永不变更。这些模型名作为 API 契约，客户端可以长期使用而无需担心模型名变化：
+
+| 模型名称 | 说明 |
+|---------|------|
+| `gemini-pro` | Pro 模型，性能最强，适合复杂任务 |
+| `gemini-flash` | 快速模型，低延迟，适合实时应用 |
+| `gemini-flash-lite` | 最轻量最快的模型（3.5 Flash-Lite），Pro/Flash 被限额时仍可用 |
+| `gemini-argon` | 4 Argon，面向复杂任务。只有池里至少一个账号真的拿到它时才会出现在模型列表里（别名：`gemini-4-argon`） |
+
+> `gemini-flash-thinking` 已下线：它仍可调用（隐藏别名，等同 `gemini-flash`），但不再出现在模型列表里。思考改为每个模型都有的 `low` / `medium` / `high` 三档，客户端没指定档位时默认 `low`（实测每请求平均多约 5 秒，可在面板「设置 → 思考」改成 `off` 换最快），详见 [README 的「🧠 模型与思考档位」](README.md#-模型与思考档位)。
+
+**账号驱动的模型发现**：除上面这几个固定名之外，服务还会从账号心跳里读模型列表。账号真的有、而内置表不认识的模型（4 Argon 正是这种情况）会被自动采纳；采纳前要过校验（model id 为 16 位小写十六进制、model number 为正整数、标签可解析、生成的名字不得顶掉任何既有公开名），不合格的条目仍然丢弃并打日志。上面 3 个契约名**永远不来自发现**，所以一个畸形/被污染的心跳改不了它们的指向。
+
+**发现来的模型是按账号生效的**：`gemini-argon` 这类发现来的名字，只在**真的发现过它的那个账号**上可路由。模型列表是跨账号聚合的，所以混合池里（一部分账号有 Argon、另一部分没有）请求可能落到一个没有它的账号上 —— 这时服务直接报错（HTTP 400 `Model ... unavailable`），**不会**退回到别的模型。这是故意的：静默换模型的表现是 HTTP 200、正文正常、客户端完全看不出答案来自另一个模型。需要稳定可用时，请让池里所有账号都拿到该模型，或改用 3 个契约名。另外，某一轮心跳不再报告某个发现来的模型时，它会立刻从模型列表里消失（不会留着一个"列表里有、调起来坏"的名字）。
+
+
+**内部自动映射**：服务内部会根据你的 Google 账号订阅等级（Advanced/Plus/Basic）自动映射到当前真实可用的模型版本。无论账号等级如何变化、Google 灰度发布如何调整、服务重启等，客户端始终使用这 3 个固定名称，无需修改。
+
+**旧别名兼容**：为了向后兼容，以下旧模型名仍然支持：
+- `gemini-2.5-pro`、`gemini-2.0-flash`、`gemini-2.0-flash-thinking` 等
+
+### 第三方模型
+
+通过 API Key 池支持：
+- **OpenAI**：gpt-4o、gpt-4-turbo、gpt-3.5-turbo 等
+- **Anthropic**：claude-3-opus、claude-3-sonnet、claude-3-haiku 等
+- **Google Gemini**：通过官方 API Key
+- **OpenRouter**：支持 OpenRouter 平台的所有模型
+
+## 第三方客户端接入
+
+### ChatGPT-Next-Web
+
+1. 部署 ChatGPT-Next-Web
+2. 打开设置页面
+3. 在"API 设置"中填入：
+   - **API 地址**：`http://服务器IP:5918/openai/v1`
+   - **API Key**：`sk-你的API密钥`
+4. 选择模型为 `gemini-2.0-flash` 或其他可用模型
+5. 开始对话
+
+### LobeChat
+
+1. 部署 LobeChat
+2. 打开设置页面
+3. 在"模型提供商"中选择"OpenAI"
+4. 填入：
+   - **API 地址**：`http://服务器IP:5918/openai/v1`
+   - **API Key**：`sk-你的API密钥`
+5. 选择模型
+6. 开始对话
+
+### OpenCat
+
+1. 打开 OpenCat 应用
+2. 进入设置
+3. 添加自定义 API 端点：
+   - **API 地址**：`http://服务器IP:5918/openai/v1`
+   - **API Key**：`sk-你的API密钥`
+4. 选择模型
+5. 开始对话
+
+### 通用 OpenAI 兼容客户端
+
+任何支持自定义 API 端点的 OpenAI 兼容客户端都可以使用：
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="sk-你的API密钥",
+    base_url="http://服务器IP:5918/openai/v1"
+)
+
+response = client.chat.completions.create(
+    model="gemini-2.0-flash",
+    messages=[{"role": "user", "content": "Hello"}]
+)
+```
+
+## Cookie 管理
+
+### 自动更新
+
+服务内置 Cookie 自动轮换机制：
+- 默认每 30 分钟（`REFRESH_INTERVAL`，硬下限 10 分钟）通过 Google RotateCookies API 刷新 `__Secure-1PSIDTS`
+- 配合 batchexecute 心跳模拟浏览器活跃行为
+- 延长 session 寿命
+
+### 手动更新
+
+#### 通过 Web 面板
+
+1. 打开 Web 面板
+2. 进入"账号管理"
+3. 选择要更新的账号
+4. 点击"更新 Cookie"
+5. 输入新的 Cookie 值
+6. 保存
+
+#### 通过 API
+
+```bash
+curl -X PUT http://localhost:5918/admin/accounts/account-0/cookies \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-你的API密钥" \
+  -d '{
+    "psid": "g.新的值",
+    "psidts": "sidts-新的值"
+  }'
+```
+
+### Cookie 过期处理
+
+如果 Cookie 过期，服务会：
+1. 自动标记账号为不健康
+2. 跳过该账号，使用其他账号
+3. 在日志中记录错误
+4. 等待手动更新 Cookie
+
+## 多语言支持
+
+Web 面板支持多种语言，点击右上角地球图标切换：
+- 简体中文
+- 繁體中文
+- English
+- 日本語
+- 한국어
+
+## 对话上下文
+
+### 自动维护
+
+客户端 SDK 会自动维护对话历史：
+```python
+messages = [
+    {"role": "user", "content": "第一条消息"},
+    {"role": "assistant", "content": "回复"},
+    {"role": "user", "content": "第二条消息"}
+]
+```
+
+### 使用 conversation_id
+
+支持通过 `conversation_id` 字段维护长对话：
+
+```bash
+# 第一条消息
+curl -X POST http://localhost:5918/openai/v1/chat/completions \
+  -H "Authorization: Bearer sk-你的API密钥" \
+  -d '{
+    "model": "gemini-2.0-flash",
+    "messages": [{"role": "user", "content": "Hi"}],
+    "conversation_id": "conv-123"
+  }'
+
+# 后续消息（使用相同的 conversation_id）
+curl -X POST http://localhost:5918/openai/v1/chat/completions \
+  -H "Authorization: Bearer sk-你的API密钥" \
+  -d '{
+    "model": "gemini-2.0-flash",
+    "messages": [{"role": "user", "content": "继续之前的话题"}],
+    "conversation_id": "conv-123"
+  }'
+```
+
+## 流式和非流式请求
+
+### 流式请求
+
+设置 `stream: true` 获取实时流式响应：
+
+```bash
+curl -X POST http://localhost:5918/openai/v1/chat/completions \
+  -H "Authorization: Bearer sk-你的API密钥" \
+  -d '{
+    "model": "gemini-2.0-flash",
+    "messages": [{"role": "user", "content": "写一首诗"}],
+    "stream": true
+  }'
+```
+
+### 非流式请求
+
+设置 `stream: false` 获取完整响应：
+
+```bash
+curl -X POST http://localhost:5918/openai/v1/chat/completions \
+  -H "Authorization: Bearer sk-你的API密钥" \
+  -d '{
+    "model": "gemini-2.0-flash",
+    "messages": [{"role": "user", "content": "写一首诗"}],
+    "stream": false
+  }'
+```
+
+## 函数调用
+
+支持 OpenAI 格式的函数调用：
+
+```python
+response = client.chat.completions.create(
+    model="gemini-2.0-flash",
+    messages=[{"role": "user", "content": "北京今天天气怎么样"}],
+    tools=[{
+        "type": "function",
+        "function": {
+            "name": "get_weather",
+            "description": "获取指定城市的天气",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "city": {"type": "string", "description": "城市名称"}
+                },
+                "required": ["city"]
+            }
+        }
+    }]
+)
+```
+
+## Deep Research
+
+支持深度研究功能，进行多步骤的研究和分析：
+
+```bash
+curl -X POST http://localhost:5918/gemini/v1beta/deepresearch/stream \
+  -H "Authorization: Bearer sk-你的API密钥" \
+  -d '{
+    "query": "人工智能的发展趋势"
+  }'
+```
+
+## 常见使用场景
+
+### 场景 1：简单对话
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="sk-你的API密钥",
+    base_url="http://localhost:5918/openai/v1"
+)
+
+response = client.chat.completions.create(
+    model="gemini-2.0-flash",
+    messages=[{"role": "user", "content": "你好"}]
+)
+
+print(response.choices[0].message.content)
+```
+
+### 场景 2：流式对话
+
+```python
+for chunk in client.chat.completions.create(
+    model="gemini-2.0-flash",
+    messages=[{"role": "user", "content": "写一个 Python 快速排序"}],
+    stream=True
+):
+    if chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="")
+```
+
+### 场景 3：多轮对话
+
+```python
+messages = []
+
+# 第一轮
+messages.append({"role": "user", "content": "什么是机器学习"})
+response = client.chat.completions.create(
+    model="gemini-2.0-flash",
+    messages=messages
+)
+messages.append({"role": "assistant", "content": response.choices[0].message.content})
+
+# 第二轮
+messages.append({"role": "user", "content": "能举个例子吗"})
+response = client.chat.completions.create(
+    model="gemini-2.0-flash",
+    messages=messages
+)
+messages.append({"role": "assistant", "content": response.choices[0].message.content})
+
+print(messages[-1]["content"])
+```
+
+### 场景 4：使用 Claude SDK
+
+```python
+import anthropic
+
+client = anthropic.Anthropic(
+    api_key="sk-你的API密钥",
+    base_url="http://localhost:5918/claude"
+)
+
+message = client.messages.create(
+    model="gemini-2.0-flash",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Hello"}]
+)
+
+print(message.content[0].text)
+```
+
+## 故障排查
+
+### 请求返回 401
+
+**原因**：API Key 无效或未提供
+
+**解决**：
+1. 检查 API Key 是否正确
+2. 确保请求头中包含 `Authorization: Bearer sk-xxx`
+3. 检查 API Key 是否在 `.env` 中正确配置
+
+### 请求返回 503
+
+**原因**：没有可用的账号
+
+**解决**：
+1. 检查账号 Cookie 是否过期
+2. 通过 Web 面板更新 Cookie
+3. 检查账号状态是否为 healthy
+
+### 响应缓慢
+
+**原因**：
+1. 网络延迟
+2. 账号被限流
+3. 服务器资源不足
+
+**解决**：
+1. 增加账号数量
+2. 调整并发限制
+3. 增加服务器资源
+
+### 对话上下文丢失
+
+**原因**：未使用 `conversation_id` 或 ID 过期
+
+**解决**：
+1. 使用 `conversation_id` 维护对话
+2. 定期检查 ID 是否有效
+3. 在客户端维护完整的 messages 历史
+
+## 获取帮助
+
+- 查看 [DEPLOY.md](./DEPLOY.md) 了解部署方法
+- 查看 [API.md](./API.md) 了解 API 文档
+- 查看 [README.md](../../README.md) 了解项目概况
+- 提交 Issue：[GitHub Issues](https://github.com/xwteam/gemini2api/issues)

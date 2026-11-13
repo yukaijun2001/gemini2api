@@ -1,0 +1,52 @@
+services:
+  gemini2api:
+    image: ghcr.io/xwteam/gemini2api:latest
+    container_name: gemini2api
+    # 镜像以 root 启动后由 docker-entrypoint.sh 修复 ./data、./api 卷属主再降权到非 root
+    # 的 appuser 运行；无需在此指定 user:，历史部署 `docker compose pull` 即可无缝升级。
+    env_file:
+      - .env
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - "5918:5918"
+    volumes:
+      - ./data:/app/data
+      - ./api:/app/api
+      - /etc/localtime:/etc/localtime:ro
+      - /usr/share/zoneinfo/Asia/Shanghai:/usr/share/zoneinfo/Asia/Shanghai:ro
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:5918/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  # Cookie 自动保活（可选）：用真实 Chromium 定时访问 Gemini，触发前端 JS 续期
+  # __Secure-1PSIDTS，再通过 /admin 接口热更新主服务的 Cookie。详见 README「Cookie 自动保活」。
+  # 默认不随 `docker compose up` 启动；需要时用 `docker compose --profile refresher up -d` 启用。
+  refresher:
+    build:
+      context: ./refresher
+      dockerfile: Dockerfile
+    image: gemini2api-refresher:latest
+    container_name: gemini2api-refresher
+    profiles: ["refresher"]
+    env_file:
+      - .env
+    environment:
+      - TZ=Asia/Shanghai
+      # 主服务的内部地址（compose 网络内按服务名解析）。
+      - GEMINI2API_URL=http://gemini2api:5918
+      # 续期周期（分钟，与 README/主服务的 REFRESH_INTERVAL 一致）。
+      - REFRESH_INTERVAL=${REFRESH_INTERVAL:-8}
+      # /admin 鉴权：ADMIN_API_KEY/API_KEY 走 .env，须与主服务匹配，否则通知 401。
+    volumes:
+      # 与主服务共享 ./data：refresher 读 data/refresher_accounts.json、写 data/browser_states/。
+      - ./data:/app/data
+    depends_on:
+      - gemini2api
+    restart: unless-stopped
