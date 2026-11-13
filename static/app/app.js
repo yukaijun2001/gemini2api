@@ -135,7 +135,6 @@ async function loadDashboard() {
         renderModelsList(modelsSet);
         updatePlaygroundModels(modelsSet);
         await loadSystemInfo();
-        await loadQrCards();
 
         // Bind and auto-check update button (must be after DOM is loaded)
         const updateBtn = document.getElementById('checkUpdateBtn');
@@ -184,51 +183,6 @@ async function loadSystemInfo() {
     } catch (error) {
         console.error('加载系统信息失败:', error);
     }
-}
-
-const QR_REMOTE_BASE = 'https://raw.githubusercontent.com/xwteam/gemini2api/main/api';
-
-async function loadQrCards() {
-    const container = document.getElementById('qrCardsContainer');
-    if (!container) return;
-    try {
-        const resp = await fetch(`${QR_REMOTE_BASE}/qr-config.json`);
-        if (!resp.ok) return;
-        const config = await resp.json();
-        // 安全：qr-config.json 来自第三方 GitHub 源（可被篡改/MITM），title/description/image
-        // 一律转义后再拼入 innerHTML；image 仅取相对路径片段并 encodeURIComponent，
-        // 同时对属性值用 escapeAttr 防止双引号逸出注入事件属性。
-        container.innerHTML = (config.cards || []).map(card => `
-            <div class="qr-card">
-                <p class="qr-title">${escapeHtml(card.title)}</p>
-                <img src="${QR_REMOTE_BASE}/${encodeURIComponent(String(card.image ?? ''))}" alt="${escapeAttr(card.title)}" class="qr-img" onclick="window.app.openLightbox(this.src)">
-                <p class="qr-desc">${escapeHtml(card.description)}</p>
-            </div>
-        `).join('');
-    } catch (e) {
-        console.error('加载二维码配置失败:', e);
-    }
-}
-
-function openLightbox(src) {
-    const overlay = document.getElementById('lightboxOverlay');
-    const img = document.getElementById('lightboxImage');
-    if (overlay && img) {
-        img.src = src;
-        overlay.classList.add('active');
-    }
-}
-
-function closeLightbox() {
-    const overlay = document.getElementById('lightboxOverlay');
-    if (overlay) overlay.classList.remove('active');
-}
-
-function initLightbox() {
-    const overlay = document.getElementById('lightboxOverlay');
-    const closeBtn = document.getElementById('lightboxClose');
-    if (overlay) overlay.addEventListener('click', (e) => { if (e.target === overlay) closeLightbox(); });
-    if (closeBtn) closeBtn.addEventListener('click', closeLightbox);
 }
 
 // 账号卡片上的健康提示（纯函数，无 DOM 依赖，可被 node 直接跑）。
@@ -312,6 +266,19 @@ function _accountKeepaliveTag(account) {
     return ` <span class="badge badge-info keepalive-tag" title="${escapeAttr(t('accounts.keepaliveBrowserHint'))}">${escapeHtml(t('accounts.keepaliveBrowser'))}</span>`;
 }
 
+function _accountModelNames(account) {
+    const details = account.model_details || [];
+    if (details.length) {
+        return details.map(model =>
+            `<div class="account-model"><span>${escapeHtml(model.display_name)}</span><code>${escapeHtml(model.name)}</code><small>${escapeHtml(model.model_id)}${model.routable === false ? ' · ' + escapeHtml(t('accounts.modelNotRoutable')) : ''}</small></div>`
+        ).join('');
+    }
+    const models = account.models || [];
+    return models.length
+        ? models.map(model => `<div class="account-model">${escapeHtml(model)}</div>`).join('')
+        : `<span class="text-muted">${escapeHtml(t('accounts.noModels'))}</span>`;
+}
+
 function renderAccountStatusGrid(accounts) {
     const container = document.getElementById('accountStatusGrid');
     if (!container) return;
@@ -342,7 +309,7 @@ function renderAccountStatusGrid(accounts) {
             </div>
             <div class="account-detail">
                 <span class="label">${t('accounts.models')}</span>
-                <span class="value">${account.models_count || 0}</span>
+                <span class="value account-models">${_accountModelNames(account)}</span>
             </div>
             <div class="account-detail">
                 <span class="label">${t('accounts.lastSuccess')}</span>
@@ -477,7 +444,7 @@ async function loadAccounts() {
                 </div>
                 <div class="account-detail">
                     <span class="label">${t('accounts.models')}</span>
-                    <span class="value">${(account.models || []).length || account.models_count || 0}</span>
+                    <span class="value account-models">${_accountModelNames(account)}</span>
                 </div>
                 <div class="account-detail">
                     <span class="label">${t('accounts.lastSuccess')}</span>
@@ -810,7 +777,7 @@ function _pgThinkingEffort(value) {
 // 设置页「默认思考档位」（含 off）在生产上的真实速度，思考内容按规定不回传。
 function _pgBuildChatRequest(model, messages, conversationId, thinkingLevel) {
     const body = {
-        model: model || 'gemini-flash',
+        model,
         messages: [...messages],
         stream: true
     };
@@ -1393,7 +1360,6 @@ async function initApp() {
     initApiKeys();
     initAccessKeys();
     initGems();
-    initLightbox();
 
     console.log('Gemini2API 管理控制台已加载');
 }
@@ -1409,7 +1375,6 @@ window.app = {
     sendPlaygroundRequest,
     clearPlayground,
     copyModel,
-    openLightbox,
     reloadCurrentSection() {
         const activeSection = document.querySelector('.section.active');
         if (activeSection) {

@@ -1,5 +1,6 @@
 """对标补齐（v1.6.50）：混合账号池换号、附件上传重试、生成图并发下载、GET /v1/models/{model}。"""
 import asyncio
+from conftest import seed_detected_models
 import time
 
 import pytest
@@ -27,7 +28,7 @@ class _Client:
         return self._healthy
 
     def _model_table(self):
-        return dict(gc._BASE_MODELS)
+        return seed_detected_models(gc.GeminiWebClient.__new__(gc.GeminiWebClient))._model_table()
 
     async def generate(self, prompt, model, conversation_id="", attachments=None, gem_id=None,
                        extended_thinking=False):
@@ -183,7 +184,7 @@ def test_a_real_upstream_error_wins_over_model_unavailable(order):
 
 def test_when_the_account_with_the_model_is_just_busy_it_is_a_529_not_a_400():
     lacking, having = _Client(False), _Client(True)
-    having._model_table = lambda: dict(gc._BASE_MODELS, **{"gemini-argon": {"id": "x", "capacity": 2}})
+    having._model_table = lambda: {"gemini-argon": {"id": "x", "capacity": 2}}
     pool = _pool(lacking, having)
     pool.accounts[1].active_requests = pool._max_concurrent        # 满载
     with pytest.raises(RuntimeError) as ei:
@@ -207,6 +208,7 @@ def test_the_client_does_not_wrap_an_inner_model_unavailable(monkeypatch):
     client._healthy = True
     client._heal_lock = asyncio.Lock()
     client._family_model = {}
+    seed_detected_models(client)
     calls = []
 
     async def send(*a, **kw):
@@ -258,7 +260,7 @@ def test_stream_real_upstream_error_wins_over_model_unavailable(order):
 
 def test_stream_busy_model_holder_is_a_529_and_the_lacking_attempt_is_not_counted():
     lacking, having = _Client(False), _Client(True)
-    having._model_table = lambda: dict(gc._BASE_MODELS, **{"gemini-argon": {"id": "x", "capacity": 2}})
+    having._model_table = lambda: {"gemini-argon": {"id": "x", "capacity": 2}}
     pool = _pool(lacking, having)
     pool.accounts[1].active_requests = pool._max_concurrent
     with pytest.raises(RuntimeError) as ei:

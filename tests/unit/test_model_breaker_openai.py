@@ -175,7 +175,7 @@ def test_buffered_tool_stream_goes_straight_to_the_fallback_while_open(world):
 
 def test_the_family_is_resolved_from_the_model_actually_sent_to_gemini(world):
     _open()
-    status, body = _chat(world, model="gemini-2.5-flash")            # 别名 → flash
+    status, body = _chat(world, model="gemini-flash")
     assert status == 200 and world.generate == []
     status, body = _chat(world, model="gemini-flash-lite")           # 别的族不受牵连
     assert status == 200 and len(world.generate) == 1

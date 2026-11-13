@@ -12,6 +12,7 @@ H.2：默认思考档是 low，大多数流在套话之前就先发了思考事�
 """
 
 import asyncio
+from conftest import seed_detected_models
 import json
 import logging
 
@@ -125,6 +126,7 @@ def _client(monkeypatch, *, stream_raw: str, post_raw: str | None = None, chunk_
     client._session_token = "TOKEN"
     client._current_target = target
     client._family_model = {}
+    seed_detected_models(client)
     client._session_uuid = "SESSION-UUID"
     client._push_id = ""
     client._cookie_jar = _Jar()

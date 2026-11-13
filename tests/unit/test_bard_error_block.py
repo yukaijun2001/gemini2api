@@ -11,6 +11,7 @@ internal/modules/providers/gemini_service_test.go:125）：
 """
 
 import asyncio
+from conftest import seed_detected_models
 import json
 
 import pytest
@@ -218,6 +219,7 @@ def _stream_client(monkeypatch, raw: str, *, chunk_size: int = 17):
     client._session_token = "TOKEN"
     client._current_target = "chrome120"
     client._family_model = {}
+    seed_detected_models(client)
     client._session_uuid = "SESSION-UUID"
 
     class _Jar:

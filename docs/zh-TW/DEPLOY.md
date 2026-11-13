@@ -366,7 +366,6 @@ kill -9 <PID>
 ```yaml
 volumes:
   - ./data:/app/data           # 持久化資料（Cookie、日誌、統計、存取金鑰 access_keys.json）
-  - ./api:/app/api             # 熱重載資源（二維碼、公告）
   - /etc/localtime:/etc/localtime:ro  # 系統時區
 ```
 

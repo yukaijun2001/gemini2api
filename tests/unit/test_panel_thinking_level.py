@@ -138,9 +138,9 @@ def test_every_select_option_sends_what_it_says(tmp_path):
             assert body["reasoning_effort"] == value
 
 
-def test_empty_model_falls_back_to_a_public_name(tmp_path):
+def test_empty_model_does_not_invent_a_fallback_name(tmp_path):
     sent = _node(tmp_path, _send_harness(), {"model": "", "level": "low"})
-    assert sent[0]["body"]["model"] == "gemini-flash"
+    assert sent[0]["body"]["model"] == ""
 
 
 def _pg_options():

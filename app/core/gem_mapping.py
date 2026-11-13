@@ -43,7 +43,7 @@ class GemMapping:
     def set(self, name: str, info: dict) -> None:
         self.mappings[name] = {
             "gem_id": info.get("gem_id", ""),
-            "base_model": info.get("base_model", "gemini-pro"),
+            "base_model": info.get("base_model", ""),
             "account_id": info.get("account_id", ""),
         }
         self._save()

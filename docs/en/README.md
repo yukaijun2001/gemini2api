@@ -35,7 +35,6 @@
 <br>
 
 <a href="https://github.com/xwteam/gemini2api/issues"><img src="https://img.shields.io/github/issues/xwteam/gemini2api?style=flat-square" alt="Issues"></a>
-<a href="https://github.com/xwteam/gemini2api/stargazers"><img src="https://img.shields.io/github/stars/xwteam/gemini2api?style=flat-square" alt="Stars"></a>
 
 </div>
 
@@ -151,8 +150,7 @@ Level parameters per protocol (**no level specified → default level**; a reque
 
 - Chinese visual management interface with API Key authentication
 - Top-right control bar: theme toggle, service restart, logout
-- Dashboard: real-time uptime counter, QR code cards (image zoom support), system info (version/Python/OS/memory/CPU/PID/mode), config management, account status overview, available models list
-- **Hot-update resources**: `api/` directory volume mount, QR code images and text config changes take effect on page refresh without container rebuild
+- Dashboard: real-time uptime counter, system info (version/Python/OS/memory/CPU/PID/mode), config management, account status overview, available models list
 - Account management: add/delete accounts, update individual cookies, health checks
 - **Settings page**: visual runtime config management (performance, rate limiting, health checks, account management), changes take effect immediately
 - **Model mapping**: map request model names to actual models (e.g., gpt-4o → gemini-2.5-pro)
@@ -718,9 +716,7 @@ curl -X POST http://localhost:5918/admin/access-keys/3/reset-usage \
 
 ---
 
-## ☕ Support & Contribute
-
-Find this helpful? Buy the author a coffee or join the WeChat group for support. For full details, see [SPONSORS.md](SPONSORS.md).
+## Contributing
 
 PRs and Issues welcome.
 

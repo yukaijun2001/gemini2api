@@ -1,6 +1,6 @@
 #!/bin/sh
 # 入口脚本（VULN 非 root 加固的升级安全版）：
-# 以 root 启动时，先把 bind 挂载的可写卷（/app/data、/app/api）归属给 appuser，
+# 以 root 启动时，先把 bind 挂载的可写卷（/app/data）归属给 appuser，
 # 再降权（gosu）到非 root 的 appuser 运行真正的服务进程。
 #
 # 为什么需要它：镜像内进程以非 root 运行，但 ./data 这类 bind 挂载的属主由宿主决定
@@ -13,7 +13,7 @@
 set -e
 
 if [ "$(id -u)" = "0" ]; then
-    chown -R appuser:appuser /app/data /app/api 2>/dev/null || true
+    chown -R appuser:appuser /app/data 2>/dev/null || true
     exec gosu appuser "$@"
 fi
 

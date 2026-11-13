@@ -9,6 +9,7 @@ EXPIRED；也不换号重试（预算已经花完，再试会让客户端再等�
 """
 
 import asyncio
+from conftest import seed_detected_models
 
 import pytest
 from curl_cffi.requests import RequestsError
@@ -172,6 +173,7 @@ def _web_client_failing_with(monkeypatch, exc):
     client._healthy = True
     client._heal_lock = asyncio.Lock()
     client._family_model = {}
+    seed_detected_models(client)
     calls = []
 
     async def _send(*a, **kw):

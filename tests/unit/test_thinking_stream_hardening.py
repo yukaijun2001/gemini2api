@@ -340,13 +340,13 @@ def _ids(gem_client, key):
     )
 
 
-def test_a_key_restricted_to_the_retired_name_still_lists_it(gem_client, _key_store):
+def test_a_key_restricted_to_a_retired_name_does_not_invent_a_model(gem_client, _key_store):
     key = _key_store.create("old", allowed_models=["gemini-flash-thinking"]).key
     oai, claude, native, detail = _ids(gem_client, key)
-    assert oai == ["gemini-flash-thinking"]
-    assert claude == ["gemini-flash-thinking"]
-    assert native == ["models/gemini-flash-thinking"]
-    assert detail == 200
+    assert oai == []
+    assert claude == []
+    assert native == []
+    assert detail == 404
 
 
 def test_keys_that_did_not_pick_the_retired_name_do_not_see_it(gem_client, _key_store):

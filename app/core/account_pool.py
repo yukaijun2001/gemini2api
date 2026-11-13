@@ -14,7 +14,7 @@ from app.core.gemini_client import (
 )
 from app.core import keepalive_modes
 from app.core.model_breaker import attempt_fingerprint, model_breaker
-from app.core.access_context import current_bound_account_ids
+from app.core.access_context import current_allowed_models, current_bound_account_ids
 from app.core.fallback import is_empty_result
 from app.config import settings
 from app.core.usage_metrics import live_metrics
@@ -1136,8 +1136,9 @@ class AccountPool:
                 # 安全摘要，不含上游原文（见 _error_summary）；会话失效时补上原因（见上）
                 "last_error": last_error,
                 "last_error_at": a.last_error_at.isoformat() if a.last_error_at else None,
-                "models": self.models if a.client else [],
-                "models_count": len(self.models) if a.client else 0,
+                "models": getattr(a.client, "models", []),
+                "models_count": len(getattr(a.client, "models", [])),
+                "model_details": getattr(a.client, "model_details", []) if a.client else [],
                 # browser = cookie 由浏览器保活插件推送、服务端不轮换；server = 服务端轮换（默认）
                 "keepalive_mode": _keepalive_mode(a),
             })
@@ -1355,21 +1356,42 @@ class AccountPool:
 
     @property
     def models(self) -> list[str]:
-        # 3 个固定公开模型名（pro / flash / flash-lite，API 稳定契约）恒在最前、顺序不变，
-        # 内部由 _resolve_model 按账号真实可用模型动态映射。
-        # 之后追加「池里至少一个账号真的拿到了」的新 family 的公开名（如 Argon）：
-        # 心跳没发现它的部署看不到这个名字，不给用户一个调不通的选项。
-        from app.core.gemini_client import PUBLIC_MODELS, _BASE_FAMILIES, _FAMILY_PUBLIC
-        names = list(PUBLIC_MODELS)
+        names = []
         for account in self._accounts:
-            family_model = getattr(account.client, "_family_model", None) or {}
-            for family, internal in family_model.items():
-                if family in _BASE_FAMILIES:
-                    continue
-                public = _FAMILY_PUBLIC.get(family) or internal
-                if public not in names:
-                    names.append(public)
+            for name in getattr(account.client, "models", []):
+                if name not in names:
+                    names.append(name)
         return names
+
+    @property
+    def model_details(self) -> list[dict]:
+        details = {}
+        for account in self._accounts:
+            for info in getattr(account.client, "model_details", []):
+                if info["name"] not in details or info["routable"]:
+                    details[info["name"]] = info
+        return list(details.values())
+
+    def default_model(self, family: str = "pro", account_id: str | None = None) -> str:
+        candidates = []
+        bound = current_bound_account_ids()
+        allowed = current_allowed_models()
+        for account in self._accounts:
+            if account_id and account.id != account_id:
+                continue
+            if bound is not None and account.id not in bound:
+                continue
+            if account.status != AccountStatus.ACTIVE or account.client is None or not account.client.is_healthy:
+                continue
+            for name, info in account.client._model_table().items():
+                if allowed is not None and name not in allowed and f"models/{name}" not in allowed:
+                    continue
+                if info.get("family") == family:
+                    return name
+                candidates.append(name)
+        if candidates:
+            return candidates[0]
+        raise ModelUnavailable("No detected models available; check the account in the console")
 
     @property
     def is_healthy(self) -> bool:

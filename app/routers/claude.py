@@ -123,13 +123,14 @@ models_router = APIRouter(tags=["Claude"])
 
 @models_router.get("/models")
 async def list_models():
+    details = {info["name"]: info for info in gemini_client.model_details}
     models = filter_models_for_access_key(_apply_model_whitelist(
         with_retired_models_for_access_key(gemini_client.models)))
     data = [
         ClaudeModelInfo(
             id=m,
             created_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            display_name=m,
+            display_name=details.get(m, {}).get("display_name", m),
         )
         for m in models
     ]
@@ -148,7 +149,8 @@ async def get_model(model_id: str):
     return ClaudeModelInfo(
         id=model_id,
         created_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        display_name=model_id,
+        display_name=next((info["display_name"] for info in gemini_client.model_details
+                           if info["name"] == model_id), model_id),
     )
 
 
@@ -171,7 +173,7 @@ async def create_message(req: ClaudeRequest, request: Request):
         if gem_info:
             gem_id = gem_info.get("gem_id")
             gem_account_id = gem_info.get("account_id") or None
-            resolved_model = gem_info.get("base_model") or "gemini-pro"
+            resolved_model = gem_info.get("base_model") or gemini_client.default_model(account_id=gem_account_id)
 
     ensure_model_allowed(req.model, resolved_model)
 

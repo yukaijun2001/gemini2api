@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 # 畸形工具调用 JSON 的降级提示。既是发给客户端的文案，也是 is_malformed_tool_result
 # 的判定依据——两者共用同一个常量，避免改文案时判定悄悄失效。
-MALFORMED_TOOL_NOTICE = "（模型返回的工具调用格式有误，已忽略。请重试或换用 gemini-flash。）"
+MALFORMED_TOOL_NOTICE = "（模型返回的工具调用格式有误，已忽略。请重试或换用其他已探测到的模型。）"
 
 
 # 明确的图像生成意图关键词。收窄到「确实在要图」的表达，避免误判

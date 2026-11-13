@@ -507,9 +507,6 @@ async def root_page():
     return await index_page()
 
 
-API_DIR = Path(__file__).parent.parent / "api"
-
-
 class RevalidatingStaticFiles(StaticFiles):
     """给面板的 JS/CSS/HTML 加 ``Cache-Control: no-cache``。
 
@@ -532,7 +529,6 @@ class RevalidatingStaticFiles(StaticFiles):
         return response
 
 
-app.mount("/api-assets", StaticFiles(directory=str(API_DIR)), name="api-assets")
 app.mount("/", RevalidatingStaticFiles(directory=str(STATIC_DIR), html=True), name="static")
 
 

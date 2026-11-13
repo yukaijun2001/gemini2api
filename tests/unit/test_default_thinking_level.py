@@ -12,6 +12,7 @@
 """
 
 import json
+from conftest import seed_detected_models
 import re
 from types import SimpleNamespace
 
@@ -662,6 +663,7 @@ def _wire_client(monkeypatch):
     monkeypatch.setattr(gc, "apply_jitter", _noop)
     c = gc.GeminiWebClient.__new__(gc.GeminiWebClient)
     c._family_model, c._discovered_models, c._available_models = {}, {}, []
+    seed_detected_models(c)
     c._session_token, c._session_uuid = "AT", "S"
     c._http = _Http()
     c._cookie_jar = SimpleNamespace(update_from_response=lambda r: None)
@@ -686,7 +688,7 @@ _V1_6_42_NO_THINKING_WIRE = {
 def _v1_6_42_golden(public: str) -> dict:
     internal, model_id = _V1_6_42_NO_THINKING_WIRE[public]
     return {
-        "data": {"at": "AT", "f.req": json.dumps([None, json.dumps([["hi"], None, None, internal])])},
+        "data": {"at": "AT", "f.req": json.dumps([None, json.dumps([["hi"], None, None, public])])},
         "headers": {
             "x-base": "1",
             "x-goog-ext-525001261-jspb": f'[1,null,null,null,"{model_id}",null,null,0,[4],null,null,1]',

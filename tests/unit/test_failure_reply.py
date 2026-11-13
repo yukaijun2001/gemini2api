@@ -18,6 +18,7 @@ refs/gemini-web-to-api/internal/modules/providers/gemini_music_test.go:93 也把
 """
 
 import asyncio
+from conftest import seed_detected_models
 import json
 import logging
 
@@ -213,6 +214,7 @@ def _web_client(monkeypatch, raw_bodies):
     client._heal_lock = asyncio.Lock()
     client._session_token = "TOKEN"
     client._family_model = {}
+    seed_detected_models(client)
     client._session_uuid = "SESSION-UUID"
     client._push_id = ""
     client.posts = 0

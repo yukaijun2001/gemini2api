@@ -2,7 +2,7 @@
 
 **为什么只写 .env 不够**：项目自带的 docker-compose.yml 用 ``env_file: .env`` 把宿主机
 的 .env 注入成**真实环境变量**，而 pydantic-settings 里 ``os.environ`` 的优先级高于
-dotenv 文件；同时 compose 只挂载了 ``./data`` 和 ``./api``，宿主机那份 .env 在容器里根本
+dotenv 文件；同时 compose 只挂载了 ``./data``，宿主机那份 .env 在容器里根本
 不可见 —— ``_update_env_file`` 写的是容器内临时的 /app/.env。于是面板上改完提示"保存
 成功"，``docker compose restart`` 之后值又变回宿主机 .env 里的旧值。对
 LOG_BODIES_ENABLED 这种隐私开关来说，"以为关掉了、其实重启后又在记录用户完整提示词"

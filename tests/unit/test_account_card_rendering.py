@@ -58,6 +58,7 @@ _APP_FUNCS = (
     "_accountHealthRow",
     "_accountEmptyRow",
     "_accountLastErrorText",
+    "_accountModelNames",
     "renderAccountStatusGrid",
     "loadAccounts",
 )
@@ -167,6 +168,30 @@ def _acc(**kw) -> dict:
     }
     base.update(kw)
     return base
+
+
+def test_model_names_and_upstream_ids_render_on_both_pages(tmp_path):
+    account = _acc(models=["gemini-3.1-pro"], model_details=[{
+        "name": "gemini-3.1-pro", "display_name": "3.1 Pro", "model_id": "e6fa609c3fa255c0",
+        "routable": True,
+    }])
+    rendered = _render([account], tmp_path)
+    for page in ("grid", "list"):
+        assert "3.1 Pro" in rendered[page]
+        assert "gemini-3.1-pro" in rendered[page]
+        assert "e6fa609c3fa255c0" in rendered[page]
+
+
+def test_model_metadata_is_escaped(tmp_path):
+    account = _acc(model_details=[{
+        "name": "<script>name</script>", "display_name": "<img src=x onerror=alert(1)>",
+        "model_id": "<script>id</script>", "routable": True,
+    }])
+    rendered = _render([account], tmp_path)
+    for page in ("grid", "list"):
+        assert "<script>" not in rendered[page]
+        assert "<img src=x" not in rendered[page]
+        assert "&lt;script&gt;" in rendered[page]
 
 
 # --------------------------------------------------------------------------

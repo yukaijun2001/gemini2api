@@ -23,7 +23,6 @@ The dashboard provides a system overview:
 - **Available Models**: List of models you can use
 - **System Info**: Python version, OS, memory usage, CPU usage, PID, run mode
 - **Configuration**: Current rotation strategy and concurrent request limits
-- **QR Codes**: Shareable codes (customizable via `api/` directory)
 
 ### Account Management
 

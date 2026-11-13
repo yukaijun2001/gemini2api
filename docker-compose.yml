@@ -2,7 +2,7 @@ services:
   gemini2api:
     image: ghcr.io/xwteam/gemini2api:latest
     container_name: gemini2api
-    # 镜像以 root 启动后由 docker-entrypoint.sh 修复 ./data、./api 卷属主再降权到非 root
+    # 镜像以 root 启动后由 docker-entrypoint.sh 修复 ./data 卷属主再降权到非 root
     # 的 appuser 运行；无需在此指定 user:，历史部署 `docker compose pull` 即可无缝升级。
     env_file:
       - .env
@@ -12,7 +12,6 @@ services:
       - "5918:5918"
     volumes:
       - ./data:/app/data
-      - ./api:/app/api
       - /etc/localtime:/etc/localtime:ro
       - /usr/share/zoneinfo/Asia/Shanghai:/usr/share/zoneinfo/Asia/Shanghai:ro
     tmpfs:

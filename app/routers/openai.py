@@ -21,8 +21,7 @@ from app.core.access_context import (
 from app.core.api_forwarder import empty_upstream_error, forward_to_provider, open_stream, run_failover
 from app.core.fallback import fallback_enabled, is_empty_result, get_fallback_entries, openai_data_is_empty
 from app.core.conversation_store import conversation_store
-from app.core.gemini_client import (GEMINI_MODELS, GENERATION_ERRORS, MODEL_ALIASES,
-                                    PinnedAccountUnavailable, _resolve_model,
+from app.core.gemini_client import (GENERATION_ERRORS, PinnedAccountUnavailable,
                                     classify_error, encode_conversation_metadata,
                                     generate_timeout_for_family,
                                     generate_with_thinking_fallback, is_timeout_error,
@@ -541,12 +540,12 @@ async def chat_completions(req: ChatRequest, request: Request):
         if gem_info:
             gem_id = gem_info.get("gem_id")
             gem_account_id = gem_info.get("account_id") or None
-            resolved_model = gem_info.get("base_model") or "gemini-pro"
+            resolved_model = gem_info.get("base_model") or gemini_client.default_model(account_id=gem_account_id)
 
     # 访问密钥限定模型时在此闸断（原名/解析后名任一命中即放行）；未限定则零开销返回。
     ensure_model_allowed(req.model, resolved_model)
 
-    if resolved_model not in gemini_client.models and _resolve_model(resolved_model) not in GEMINI_MODELS:
+    if resolved_model not in gemini_client.models:
         tp = await _dispatch_thirdparty(request, req, resolved_model)
         if tp is not None:
             return tp
@@ -1266,11 +1265,11 @@ async def images_generations(req: ImageGenerationRequest):
     else:
         prompt = raw_prompt
 
-    requested_model = req.model or "gemini-pro"
-    ensure_model_allowed(requested_model)
-    model = _resolve_model(requested_model)
     try:
-        result = await gemini_client.generate(prompt, req.model or "gemini-pro")
+        requested_model = req.model or gemini_client.default_model()
+        ensure_model_allowed(requested_model)
+        model = requested_model
+        result = await gemini_client.generate(prompt, model)
     except GENERATION_ERRORS as e:
         if isinstance(e, (RuntimeError, ValueError)):
             # 既有口径不变：这两类在生图接口上一直是 500 api_error

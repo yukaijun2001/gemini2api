@@ -9,6 +9,7 @@ S8：reasoning_effort 被布尔化后下游一律写死最高档，Codex / Curso
 
 import asyncio
 import json
+from conftest import seed_detected_models
 
 import pytest
 from curl_cffi.requests import RequestsError
@@ -115,6 +116,7 @@ def _client_with_failing_send(monkeypatch, exc):
     client = gc.GeminiWebClient.__new__(gc.GeminiWebClient)
     client._healthy = True
     client._family_model = {}
+    seed_detected_models(client)
     calls = []
 
     async def _send(*a, **kw):
@@ -177,6 +179,7 @@ def _send_request_client(monkeypatch, *, budget: float, delay: float, exc):
     client._session_token = "TOKEN"
     client._session_uuid = "SESSION-UUID"
     client._family_model = {}
+    seed_detected_models(client)
     client._push_id = ""
 
     class _Jar:
@@ -321,7 +324,8 @@ def _inner(level=None):
 def test_level_lands_in_payload_and_header(level):
     inner, _, _ = _inner(level)
     assert inner[80] == level
-    arr = json.loads(_build_model_header_thinking("gemini-flash", "S", level)[MODEL_HEADER_KEY])
+    table = seed_detected_models(gc.GeminiWebClient.__new__(gc.GeminiWebClient))._model_table()
+    arr = json.loads(_build_model_header_thinking("gemini-flash", "S", level, table)[MODEL_HEADER_KEY])
     assert arr[15] == level
     assert len(arr) == 17
 
@@ -341,7 +345,8 @@ def test_default_path_is_byte_for_byte_unchanged():
     """最重要的一条：不传档位时的 payload 必须与改动前逐字节一致（只有随机 uuid 归一化）。"""
     _, encoded, uuid_val = _inner(None)
     assert encoded.replace(uuid_val, "UUID") == _DEFAULT_PAYLOAD
-    arr = json.loads(_build_model_header_thinking("gemini-flash", "S")[MODEL_HEADER_KEY])
+    table = seed_detected_models(gc.GeminiWebClient.__new__(gc.GeminiWebClient))._model_table()
+    arr = json.loads(_build_model_header_thinking("gemini-flash", "S", models=table)[MODEL_HEADER_KEY])
     assert arr[15] == 2
 
 

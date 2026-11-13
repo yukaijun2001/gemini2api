@@ -35,7 +35,6 @@
 <br>
 
 <a href="https://github.com/xwteam/gemini2api/issues"><img src="https://img.shields.io/github/issues/xwteam/gemini2api?style=flat-square" alt="Issues"></a>
-<a href="https://github.com/xwteam/gemini2api/stargazers"><img src="https://img.shields.io/github/stars/xwteam/gemini2api?style=flat-square" alt="Stars"></a>
 
 </div>
 
@@ -151,8 +150,7 @@
 
 - 한국어 시각화 관리 인터페이스, API Key 로그인 인증
 - 우측 상단 제어 바: 테마 전환, 서비스 재시작, 로그아웃
-- 대시보드: 실시간 가동 시간 카운터, QR 코드 카드(이미지 확대 지원), 시스템 정보(버전/Python/OS/메모리/CPU/PID/실행 모드), 구성 관리(로테이션 전략/동시성 제한), 계정 상태 개요, 사용 가능한 모델 목록
-- **핫 업데이트 리소스**: `api/` 디렉토리 볼륨 마운트, QR 코드 이미지 및 텍스트 구성 수정 후 페이지 새로고침만으로 적용, 컨테이너 재빌드 불필요
+- 대시보드: 실시간 가동 시간 카운터, 시스템 정보(버전/Python/OS/메모리/CPU/PID/실행 모드), 구성 관리(로테이션 전략/동시성 제한), 계정 상태 개요, 사용 가능한 모델 목록
 - 계정 관리: 계정 추가/삭제, 개별 쿠키 업데이트, 건강 검사
 - **설정 페이지**: 런타임 구성 시각화 관리(성능, 속도 제한, 건강 검사, 계정 관리 등), 수정 즉시 적용 및 런타임에 전파
 - **모델 매핑**: 요청의 모델 이름을 실제 사용 모델로 매핑(예: gpt-4o → gemini-2.5-pro)
@@ -601,9 +599,7 @@ curl -X POST http://localhost:5918/admin/access-keys/3/reset-usage \
 
 ---
 
-## ☕ 후원 & 기여
-
-도움이 되셨나요? 작성자에게 커피를 사주거나 WeChat 그룹에 가입하여 지원을 받으세요. 자세한 내용은 [SPONSORS.md](SPONSORS.md)를 참조하세요.
+## 기여
 
 PR과 Issue를 환영합니다.
 

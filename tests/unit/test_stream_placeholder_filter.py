@@ -11,6 +11,7 @@ images 却是空的。那条链接客户端访问必定失败。
 """
 
 import asyncio
+from conftest import seed_detected_models
 
 import pytest
 
@@ -167,6 +168,7 @@ def _stream_client(monkeypatch, raw: str, *, chunk_size: int = 23):
     client._session_token = "TOKEN"
     client._current_target = "chrome120"
     client._family_model = {}
+    seed_detected_models(client)
     client._session_uuid = "SESSION-UUID"
     client._push_id = ""
 

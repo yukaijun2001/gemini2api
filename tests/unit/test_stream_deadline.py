@@ -19,6 +19,7 @@ stream 上下文的 __aexit__ 只是等它跑完、不中止，除非 session �
 """
 
 import asyncio
+from conftest import seed_detected_models
 import json
 import selectors
 import time
@@ -265,6 +266,7 @@ def _client(monkeypatch, up: _Upstream):
     client._session_token = "TOKEN"
     client._current_target = "chrome120"
     client._family_model = {}
+    seed_detected_models(client)
     client._session_uuid = "SESSION-UUID"
     client._push_id = ""
     client._http = object()                 # 只有附件上传会用到它（测试里 upload_files 是替身）
@@ -610,6 +612,7 @@ def _loopback_client(monkeypatch, port: int):
     client._session_token = "TOKEN"
     client._current_target = "chrome120"
     client._family_model = {}
+    seed_detected_models(client)
     client._session_uuid = "SESSION-UUID"
     client._push_id = ""
 

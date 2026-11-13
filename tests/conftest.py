@@ -8,6 +8,7 @@ lifespan startup, so tests never touch the network or the account pool.
 
 import os
 import sys
+import json
 from pathlib import Path
 
 # Make `import app...` work regardless of the current working directory.
@@ -27,6 +28,21 @@ os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
 import pytest
 
 TEST_API_KEY = os.environ["API_KEY"]
+
+
+def seed_detected_models(client):
+    from app.core.gemini_client import GEMINI_MODELS
+
+    entries = []
+    for family, display in (("pro", "Pro"), ("flash", "Flash"), ("flash-lite", "Flash-Lite")):
+        info = GEMINI_MODELS[f"gemini-3-{family}"]
+        entry = [None] * 20
+        entry[0], entry[1], entry[11], entry[17] = info["id"], family, display, info["model_number"]
+        entries.append(entry)
+    body = [None] * 16
+    body[15] = entries
+    client._parse_models_from_status(json.dumps([["wrb.fr", "otAQ7b", json.dumps(body)]]))
+    return client
 
 # 面板保存会把改动落到 data/settings-overrides.json（相对 CWD，即仓库根），并且
 # app.config 在 import 期就会回放它。测试必须既不读也不写开发者/CI 的真实文件，
@@ -68,10 +84,18 @@ def _fresh_model_breaker():
 
 
 @pytest.fixture
-def app_main():
+def app_main(monkeypatch):
     """Import the FastAPI application module; skip if runtime deps are absent."""
     pytest.importorskip("fastapi", reason="fastapi not installed (runtime deps)")
     from app import main
+    from app.core.account_pool import Account, AccountStatus, account_pool
+    from app.core.gemini_client import GeminiWebClient
+
+    web_client = seed_detected_models(GeminiWebClient.__new__(GeminiWebClient))
+    web_client._healthy = True
+    account = Account(id="test-account", psid="test-psid", psidts="", client=web_client,
+                      status=AccountStatus.ACTIVE)
+    monkeypatch.setattr(account_pool, "_accounts", [account])
 
     return main
 

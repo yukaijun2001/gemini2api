@@ -33,7 +33,6 @@ accounts.json
 *_rsa
 .cookies
 data
-api
 
 # Python caches / virtualenvs
 __pycache__

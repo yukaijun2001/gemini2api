@@ -92,11 +92,19 @@ def price_table_name(model: str) -> str:
         return name
     # 延迟导入：这个模块只依赖 app.config，不该在导入期把 gemini_client 整条链拉进来。
     try:
-        from app.core.gemini_client import GEMINI_MODELS, MODEL_ALIASES, _FAMILY_PUBLIC
+        from app.core.gemini_client import GEMINI_MODELS, _FAMILY_PUBLIC
     except Exception:          # pragma: no cover - 只在导入环境异常时
         return name
-    if name in MODEL_ALIASES:
-        return MODEL_ALIASES[name]
+    historical = {
+        "gemini-2.5-pro": "gemini-pro",
+        "gemini-2.5-flash": "gemini-flash",
+        "gemini-flash-thinking": "gemini-flash",
+        "gemini-3-flash-thinking": "gemini-flash",
+        "gemini-3-flash-thinking-plus": "gemini-flash",
+        "gemini-3-flash-thinking-advanced": "gemini-flash",
+    }
+    if name in historical:
+        return historical[name]
     info = GEMINI_MODELS.get(name)
     if info:
         # _FAMILY_PUBLIC 已经是 family -> 公开名

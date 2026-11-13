@@ -68,9 +68,7 @@ def test_revalidated_assets_still_serve_etag_for_cheap_304s(client):
 def test_binary_assets_under_the_wrapped_mount_are_not_forced_to_revalidate(client):
     """只对易变的文本资源加 no-cache；图片这类大文件不该被拖下水。
 
-    必须探 RevalidatingStaticFiles **挂载之内**的图片：/api-assets 走的是没包装过的
-    普通 StaticFiles，它永远没有 Cache-Control，拿它当守卫等于什么都没测 —— 就算
-    _REVALIDATE_SUFFIXES 被人加进 .png/.ico，它照样是绿的。
+    必须探 RevalidatingStaticFiles 挂载之内的图片，才能覆盖图片的缓存行为。
     """
     resp = client.get("/components/logo.png")
     assert resp.status_code == 200
@@ -79,8 +77,6 @@ def test_binary_assets_under_the_wrapped_mount_are_not_forced_to_revalidate(clie
     )
 
 
-def test_unwrapped_api_assets_mount_stays_untouched(client):
-    """/api-assets 是另一个挂载，本改动不应波及它。"""
+def test_removed_promotion_assets_are_not_served(client):
     resp = client.get("/api-assets/sponsor-qr.png")
-    assert resp.status_code == 200
-    assert resp.headers.get("cache-control") is None
+    assert resp.status_code == 404

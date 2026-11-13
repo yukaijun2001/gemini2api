@@ -58,7 +58,7 @@ def _client() -> gc.GeminiWebClient:
 # ---------------------------------------------------------------------------
 
 def test_unknown_model_entry_is_logged_with_its_fields(caplog):
-    caplog.set_level(logging.WARNING, logger=gc.logger.name)
+    caplog.set_level(logging.INFO, logger=gc.logger.name)
     client = _client()
     raw = _status_raw(
         _entry("ffffffffffffffff", "Gemini 3.5 Argon", 7, 4),
@@ -67,13 +67,13 @@ def test_unknown_model_entry_is_logged_with_its_fields(caplog):
 
     client._parse_models_from_status(raw)
 
-    warnings = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
-    hits = [m for m in warnings if "ffffffffffffffff" in m]
-    assert len(hits) == 1, f"被丢弃的条目必须恰好留一条 WARNING，实际: {warnings}"
+    messages = [record.getMessage() for record in caplog.records]
+    hits = [message for message in messages if "ffffffffffffffff" in message]
+    assert len(hits) == 1
     msg = hits[0]
     assert "Gemini 3.5 Argon" in msg, "要带上显示名（字段 11），否则日志里认不出是哪个模型"
-    assert "model_number=7" in msg, "要带上编号（字段 17）"
-    assert "field4=4" in msg, "要带上字段 4"
+    assert client._discovered_models["gemini-3.5-argon"]["model_number"] == 7
+    assert "gemini-3.5-argon" in client.models
 
 
 def test_known_entries_still_resolve(caplog):
@@ -84,7 +84,7 @@ def test_known_entries_still_resolve(caplog):
     client._parse_models_from_status(_status_raw(_entry(_KNOWN_ID, "Gemini 3 Flash", 1, 1)))
 
     assert client._family_model["flash"] == _KNOWN_NAME
-    assert client._available_models == list(PUBLIC_MODELS)
+    assert client.models == ["gemini-3-flash"]
     assert [r for r in caplog.records if r.levelno >= logging.WARNING] == []
 
 
@@ -131,7 +131,8 @@ def test_model_number_falls_back_to_field_9(caplog):
     )
 
     msgs = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
-    assert "model_number=12" in msgs[0], msgs[0]
+    assert gc._entry_model_number(_entry_at("bbbb2222", f11="Argon", f9=12)) == 12
+    assert "bbbb2222" in msgs[0]
 
 
 def test_model_number_prefers_field_17():
@@ -140,7 +141,7 @@ def test_model_number_prefers_field_17():
     assert gc._entry_model_number(_entry_at("x")) is None
 
 
-def test_the_same_unknown_id_is_only_logged_once(caplog):
+def test_unknown_ids_are_discovered_instead_of_reported_as_dropped(caplog):
     """心跳每个刷新周期都跑一轮，而"表里没有这个 id"是个稳定事实：
     逐轮重复同一行会把日志里别的线索冲掉。"""
     caplog.set_level(logging.WARNING, logger=gc.logger.name)
@@ -155,7 +156,8 @@ def test_the_same_unknown_id_is_only_logged_once(caplog):
 
     hits = [r.getMessage() for r in caplog.records
             if r.levelno >= logging.WARNING and "ffffffffffffffff" in r.getMessage()]
-    assert len(hits) == 1, f"同一个未知 id 只该留一条，实际 {len(hits)} 条"
+    assert hits == []
+    assert client.models.count("gemini-3.5-argon") == 1
 
 
 def test_a_different_unknown_id_is_still_logged(caplog):

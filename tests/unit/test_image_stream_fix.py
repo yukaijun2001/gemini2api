@@ -4,6 +4,7 @@ Static source checks — no runtime deps required.
 """
 
 from pathlib import Path
+from conftest import seed_detected_models
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -51,6 +52,7 @@ def test_image_generate_uses_extended_post_timeout():
     client._session_token = "TOKEN"
     client._session_uuid = "SESSION-UUID"
     client._family_model = {}
+    seed_detected_models(client)
     client._push_id = ""
     captured = {}
 

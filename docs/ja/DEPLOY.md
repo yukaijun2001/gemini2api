@@ -427,7 +427,6 @@ services:
       - "5918:5918"
     volumes:
       - ./data:/app/data           # ログ・Cookie 保存
-      - ./api:/app/api             # 二次元コード設定
       - /etc/localtime:/etc/localtime:ro
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:5918/health"]

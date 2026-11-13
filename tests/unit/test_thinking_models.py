@@ -1,4 +1,5 @@
 from app.core.gemini_client import GEMINI_MODELS, _model_number
+from conftest import seed_detected_models
 
 def test_flash_lite_base_id_is_free_tier():
     assert GEMINI_MODELS["gemini-3-flash-lite"]["id"] == "cf41b0e0dd7d53e5"
@@ -16,9 +17,10 @@ def test_model_numbers():
 
 def test_model_number_helper_resolves_public_names():
     # public names resolve via _FAMILY_DEFAULT
-    assert _model_number("gemini-pro") == 3
-    assert _model_number("gemini-flash") == 1
-    assert _model_number("gemini-flash-lite") == 6
+    table = seed_detected_models(GeminiWebClient.__new__(GeminiWebClient))._model_table()
+    assert _model_number("gemini-pro", table) == 3
+    assert _model_number("gemini-flash", table) == 1
+    assert _model_number("gemini-flash-lite", table) == 6
     assert _model_number("unknown-model") == 1  # safe default
 
 
@@ -26,7 +28,8 @@ import json
 from app.core.gemini_client import GeminiWebClient, _build_model_header_thinking, MODEL_HEADER_KEY
 
 def test_thinking_header_17_elements():
-    h = _build_model_header_thinking("gemini-flash", "SESSION-UUID-1")
+    table = seed_detected_models(GeminiWebClient.__new__(GeminiWebClient))._model_table()
+    h = _build_model_header_thinking("gemini-flash", "SESSION-UUID-1", models=table)
     arr = json.loads(h[MODEL_HEADER_KEY])
     assert len(arr) == 17
     assert arr[4] == "56fdd199312815e2" or arr[4] == "fbb127bbb056c959"  # flash id (family)

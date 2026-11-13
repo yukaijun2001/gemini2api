@@ -369,7 +369,6 @@ Key volumes and their purposes:
 ```yaml
 volumes:
   - ./data:/app/data           # Persistent data (cookies, logs, stats, access keys in access_keys.json)
-  - ./api:/app/api             # Hot-reload resources (QR codes, announcements)
   - /etc/localtime:/etc/localtime:ro  # System timezone
 ```
 

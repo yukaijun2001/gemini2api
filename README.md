@@ -36,7 +36,6 @@
 <br>
 
 <a href="https://github.com/xwteam/gemini2api/issues"><img src="https://img.shields.io/github/issues/xwteam/gemini2api?style=flat-square" alt="Issues"></a>
-<a href="https://github.com/xwteam/gemini2api/stargazers"><img src="https://img.shields.io/github/stars/xwteam/gemini2api?style=flat-square" alt="Stars"></a>
 
 </div>
 
@@ -90,15 +89,15 @@
 
 ### 🧠 模型与思考档位
 
-| 对外模型名 | 自动映射到网页上的模型（当前实测） | 说明 |
+| 上游探测名称（示例） | API 模型 ID | 说明 |
 |------|------|------|
-| `gemini-pro` | 3.1 Pro | 质量最高、较慢 |
-| `gemini-flash` | 3.8 Flash | 快，推荐作为默认 |
-| `gemini-flash-lite` | 3.5 Flash-Lite | 最轻最快，Pro/Flash 被限额时的兜底 |
-| `gemini-argon` | 4 Argon | 面向复杂任务；**账号真的有 Argon 时才会列出** |
+| 3.1 Pro | `gemini-3.1-pro` | 仅在该账号的心跳实际返回时列出 |
+| 3.8 Flash | `gemini-3.8-flash` | 同上 |
+| 3.5 Flash-Lite | `gemini-3.5-flash-lite` | 同上 |
+| 4 Argon | `gemini-4-argon` | 同上 |
 
-- **映射是自动的**：每个账号的心跳会报出它当前真实可用的网页模型，对外名字固定不变、内部自动对上网页当前的那一代（Google 换代时不用改客户端）。
-- **`gemini-flash-thinking` 已下线**：它只是"flash + 思考模式"的假模型，思考现在是每个模型都有的档位（见下）。为兼容老客户端，`gemini-flash-thinking`、`gemini-2.5-flash-thinking`、`gemini-2.0-flash-thinking` 以及内部名 `gemini-3-flash-thinking*` **仍然可以调**（隐藏别名，等同 `gemini-flash`），只是不再出现在任何模型列表里；想要思考内容请改传档位参数。 例外：访问密钥的「允许模型」里勾过 `gemini-flash-thinking` 的，这把密钥拉到的模型列表里仍会列出它（免得只勾了它的旧密钥拉到空列表），新签发的密钥请改勾 `gemini-flash`。⚠️ 行为变化：老客户端不传档位调用 `gemini-flash-thinking` 时，v1.6.42 会回传思考内容，现在不再回传（没请求的思考一律不回传）。
+- **实际名称探测**：每个账号独立读取 `GetUserStatus` 的模型列表，控制台显示上游原名、API 模型 ID 和上游 `model_id`。同一族的多个模型也分别保留，不按订阅档位补齐；未获取到模型时显示空列表。上表只是命名示例，实际结果以账号心跳为准。
+- **移除内置别名**：`gemini-pro`、`gemini-flash`、`gemini-flash-lite`、`gemini-argon` 和历史 thinking 别名不再自动映射。请重新获取 `/v1/models` 并选择探测到的完整模型 ID，同时更新客户端、模型白名单、访问密钥限制和已有 Gem 的基础模型配置。思考参数仍独立使用下述档位。
 - **思考三档**：`low` / `medium` / `high`，对应网页上的低 / 中 / 高三档（实测 `high` 想得最深、也最慢；`low` 与 `medium` 的差别在实测里分不太开）。
 - **默认档 `low`**：客户端**没指定档位**时（没传思考参数的，和要了思考但没说几档的），用「默认思考档位」（环境变量 `DEFAULT_THINKING_LEVEL`，或面板「设置 → 思考」，保存即时生效、无需重启），出厂 `low`。
   - ⚠️ **速度代价**：实测默认 `low` 比不思考**平均每个请求多约 5 秒**（flash 简单题 6.5 / 8.8 秒 → 8.6 / 16.6 秒）。最看重速度就把默认档设成 **`off`**（不思考、最快，与旧版不传参数时发给上游的请求完全一样）。前置代理有首字节超时的（如 EdgeOne 免费版 15 秒）尤其要留意非流式请求。流式请求也有代价：没提思考的请求按默认档开的思考不回传，**正文要等思考做完才开始出**（期间只有保活帧，连接不会被代理掐断），pro 遇到需要推理的题 `low` 档实测总耗时 36～47 秒 —— 对首字延迟敏感就用 `off`。⚠️ `off`（以及默认档本身）管的是**没指定档位**的请求：没传思考参数的，和要了思考但没说几档的（Claude Code 出厂请求就是这种，所以 Claude Code 默认也跟随默认档）。客户端**明确指定了档位**的（Codex / Cursor 选了 low/medium/high、Anthropic 给了 `budget_tokens`、Claude Code `/effort max` 等）默认档管不到；要所有请求都不思考（真正最快），关掉下面的总闸 `EXTENDED_THINKING_ENABLED=false`。
@@ -152,8 +151,7 @@
 
 - 中文可视化管理界面，API Key 登录认证
 - 右上角控制栏：主题切换、服务重启、登出
-- 仪表盘：运行时间实时计时、二维码卡片（支持图片放大）、系统信息（版本/Python/OS/内存/CPU/PID/运行模式）、配置管理（轮换策略/并发上限）、账号状态总览、可用模型列表
-- **热更新资源**：`api/` 目录 volume 挂载，二维码图片和文字配置修改后刷新页面即生效，无需重建容器
+- 仪表盘：运行时间实时计时、系统信息（版本/Python/OS/内存/CPU/PID/运行模式）、配置管理（轮换策略/并发上限）、账号状态总览、可用模型列表
 - 账号管理：添加/删除账号、单独更新 Cookie、健康检测
 - **设置页面**：可视化管理运行时配置（性能、速率限制、健康检查、账号管理等），修改即时生效并传播到运行时
 - **模型映射**：将请求中的模型名映射到实际使用的模型（如 gpt-4o → gemini-2.5-pro）
@@ -849,10 +847,6 @@ gemini2api/
 │   ├── model-mapping.json      # 模型名映射配置
 │   ├── usage-stats.json        # 用量统计快照
 │   └── cookies/                # Cookie 持久化存储
-├── api/                        # 热更新资源（Docker 卷挂载，修改无需重建）
-│   ├── qr-config.json          # 二维码卡片文字配置
-│   ├── wechat-qr.png           # 微信二维码图片
-│   └── sponsor-qr.png          # 赞助二维码图片
 ├── static/                     # Web 管理面板
 │   ├── index.html              # 主页面（SPA）
 │   ├── login.html              # 登录页
@@ -896,11 +890,7 @@ gemini2api/
 
 ---
 
-## ☕ 赞赏 & 共享
-
-> 完整内容请查看 [SPONSORS.md](SPONSORS.md)
-
-觉得有帮助？请作者喝杯咖啡，或加入微信交流群获取使用帮助。二维码见页面顶部。
+## 参与贡献
 
 Gemini2API 主要由个人维护，欢迎通过代码、文档、修复或 PR 参与建设。
 
@@ -916,18 +906,6 @@ Gemini2API 主要由个人维护，欢迎通过代码、文档、修复或 PR �
 ## 🙏 致谢
 
 感谢所有在 [Issues](https://github.com/xwteam/gemini2api/issues) 里提交 bug 复现、日志、兼容性反馈和功能建议的用户。这些反馈直接推动了 Cookie 保活、多账号轮换、模型选择、多语言支持、Web 面板等核心能力的迭代。
-
----
-
-## ⭐ Star History
-
-<a href="https://star-history.com/#xwteam/gemini2api&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=xwteam/gemini2api&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=xwteam/gemini2api&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=xwteam/gemini2api&type=date&legend=top-left" />
- </picture>
-</a>
 
 ---
 

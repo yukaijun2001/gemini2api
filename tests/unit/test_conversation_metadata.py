@@ -16,6 +16,7 @@
 
 import asyncio
 import json
+from conftest import seed_detected_models
 import logging
 import urllib.parse
 
@@ -188,6 +189,7 @@ class _StreamHarness:
         client._session_token = "TOKEN"
         client._current_target = "chrome120"
         client._family_model = {}
+        seed_detected_models(client)
         client._session_uuid = "SESSION-UUID"
         client._push_id = ""
 
@@ -285,6 +287,7 @@ def test_nonstream_request_puts_the_list_in_slot_2(monkeypatch):
     client._healthy = True
     client._session_token = "TOKEN"
     client._family_model = {}
+    seed_detected_models(client)
     client._session_uuid = "SESSION-UUID"
     client._push_id = ""
     sent = []

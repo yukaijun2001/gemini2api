@@ -19,6 +19,7 @@ from curl_cffi.requests import RequestsError
 from app.core import gemini_client as gc
 from app.core.account_pool import Account, AccountPool, AccountStatus
 from app.core.model_breaker import model_breaker, request_fingerprint, same_request_as
+from conftest import seed_detected_models
 
 PHRASE = "I seem to be encountering an error. Can I try something else for you?"
 
@@ -50,7 +51,8 @@ class _Client:
         return self._healthy
 
     def _model_table(self):
-        return dict(gc._BASE_MODELS, **(self._table or {}))
+        client = seed_detected_models(gc.GeminiWebClient.__new__(gc.GeminiWebClient))
+        return dict(client._model_table(), **(self._table or {}))
 
     async def generate(self, prompt, model, conversation_id="", attachments=None, gem_id=None,
                        extended_thinking=False):
@@ -140,11 +142,11 @@ def _state(family="flash"):
 
 @pytest.mark.parametrize("model,family", [
     ("gemini-flash", "flash"),
-    ("gemini-2.5-flash", "flash"),            # 别名
-    ("gemini-flash-thinking", "flash"),       # 已下线的隐藏别名
+    ("gemini-2.5-flash", None),
+    ("gemini-flash-thinking", None),
     ("gemini-3-flash-plus", "flash"),         # 内部名
     ("gemini-flash-lite", "flash-lite"),      # 绝不能被归到 flash
-    ("gemini-2.0-flash-lite", "flash-lite"),
+    ("gemini-2.0-flash-lite", None),
     ("gemini-3-flash-lite-advanced", "flash-lite"),
     ("gemini-pro", "pro"),
     ("gemini-argon", "argon"),
@@ -319,7 +321,7 @@ def test_pool_exhaustion_and_cancellation_are_not_recorded(spy):
 
 def test_records_use_the_model_parameter_the_router_passed(spy):
     pool = _pool(_Client([_failure()]))
-    _gen_err(pool, model="gemini-2.5-flash")
+    _gen_err(pool, model="gemini-flash")
     assert spy[0][1] == "flash"
 
 

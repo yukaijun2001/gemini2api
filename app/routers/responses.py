@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from app.config import settings
 from app.core.account_pool import account_pool as gemini_client
 from app.core.access_context import ensure_model_allowed, record_token_usage
-from app.core.gemini_client import (GEMINI_MODELS, _resolve_model, classify_error,
+from app.core.gemini_client import (classify_error,
                                     is_timeout_error, parse_effort_request, resolve_thinking,
                                     split_think_suffix)
 from app.core.responses_protocol import (
@@ -145,13 +145,13 @@ async def create_response(request: Request):
         if gem_info:
             gem_id = gem_info.get("gem_id")
             gem_account_id = gem_info.get("account_id") or None
-            resolved_model = gem_info.get("base_model") or "gemini-pro"
+            resolved_model = gem_info.get("base_model") or gemini_client.default_model(account_id=gem_account_id)
 
     ensure_model_allowed(model, resolved_model)
 
     request_params = _request_params(body)
 
-    if resolved_model not in gemini_client.models and _resolve_model(resolved_model) not in GEMINI_MODELS:
+    if resolved_model not in gemini_client.models:
         from app.core.responses_thirdparty import dispatch_thirdparty_responses
         # 第三方走 OpenAI chat 原生的 tool_calls / tool_call_id（Gemini 路径仍用拍成文本的 messages_raw）
         result = await dispatch_thirdparty_responses(

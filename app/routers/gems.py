@@ -25,7 +25,7 @@ class UpdateGemRequest(BaseModel):
 class GemMappingRequest(BaseModel):
     model_name: str
     gem_id: str
-    base_model: str = "gemini-pro"
+    base_model: str = ""
     account_id: str
 
 
@@ -87,10 +87,14 @@ async def get_gem_mappings(request: Request):
 async def set_gem_mapping(req: GemMappingRequest, request: Request):
     if not req.model_name or not req.gem_id or not req.account_id:
         raise HTTPException(status_code=400, detail="model_name, gem_id, account_id are required")
+    try:
+        base_model = req.base_model or account_pool.default_model(account_id=req.account_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     gm = request.app.state.gem_mapping
     gm.set(req.model_name, {
         "gem_id": req.gem_id,
-        "base_model": req.base_model,
+        "base_model": base_model,
         "account_id": req.account_id,
     })
     return {"success": True, "mappings": gm.get_all()}

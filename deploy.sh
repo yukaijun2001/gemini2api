@@ -22,7 +22,6 @@ SKIP_PULL="${SKIP_PULL:-0}"
 PUBLIC_HOST="${PUBLIC_HOST:-}"
 
 OVERLAY=""
-DOCKERIGNORE_BACKUP=""
 
 die() {
   printf 'deploy.sh: %s\n' "$*" >&2
@@ -38,10 +37,6 @@ compose() {
 }
 
 cleanup() {
-  if [[ -n "$DOCKERIGNORE_BACKUP" && -f "$DOCKERIGNORE_BACKUP" ]]; then
-    mv "$DOCKERIGNORE_BACKUP" "$ROOT/.dockerignore"
-    DOCKERIGNORE_BACKUP=""
-  fi
   if [[ -n "$OVERLAY" && -f "$OVERLAY" ]]; then
     rm -f "$OVERLAY"
   fi
@@ -117,7 +112,7 @@ sync_repo() {
   fi
 
   git reset --hard "$remote_ref"
-  git clean -fd -e /data -e /api -e /.env -e '/.env.*' -e /deploy.sh
+  git clean -fd -e /data -e /.env -e '/.env.*' -e /deploy.sh
 
   if [[ "$keep_script" -eq 1 ]]; then
     cp -p "$script_backup" "$ROOT/deploy.sh"
@@ -193,7 +188,7 @@ read_api_key() {
 }
 
 ensure_runtime_dirs() {
-  mkdir -p data api
+  mkdir -p data
   if [[ ! -f data/accounts.json ]]; then
     printf '%s\n' '{ "accounts": [] }' > data/accounts.json
   fi
@@ -211,13 +206,6 @@ services:
     ports: !override
       - "${HOST_PORT}:${CONTAINER_PORT}"
 EOF
-}
-
-include_api_assets() {
-  DOCKERIGNORE_BACKUP="$(mktemp)"
-  cp .dockerignore "$DOCKERIGNORE_BACKUP"
-  grep -v '^api$' .dockerignore > .dockerignore.tmp
-  mv .dockerignore.tmp .dockerignore
 }
 
 wait_healthy() {
@@ -265,7 +253,6 @@ cmd_up() {
   ensure_env
   ensure_runtime_dirs
   write_overlay
-  include_api_assets
   compose up -d --build --remove-orphans
   if wait_healthy; then
     print_ready

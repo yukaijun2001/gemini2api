@@ -36,7 +36,6 @@
 <br>
 
 <a href="https://github.com/xwteam/gemini2api/issues"><img src="https://img.shields.io/github/issues/xwteam/gemini2api?style=flat-square" alt="Issues"></a>
-<a href="https://github.com/xwteam/gemini2api/stargazers"><img src="https://img.shields.io/github/stars/xwteam/gemini2api?style=flat-square" alt="Stars"></a>
 
 </div>
 
@@ -152,8 +151,7 @@
 
 - 中文可視化管理介面，API Key 登入認證
 - 右上角控制欄：主題切換、服務重啟、登出
-- 儀表板：執行時間實時計時、二維碼卡片（支援圖片放大）、系統資訊（版本/Python/OS/記憶體/CPU/PID/執行模式）、設定管理（輪換策略/並行上限）、帳號狀態總覽、可用模型列表
-- **熱更新資源**：`api/` 目錄 volume 掛載，二維碼圖片和文字設定修改後重新整理頁面即生效，無需重建容器
+- 儀表板：執行時間實時計時、系統資訊（版本/Python/OS/記憶體/CPU/PID/執行模式）、設定管理（輪換策略/並行上限）、帳號狀態總覽、可用模型列表
 - 帳號管理：新增/刪除帳號、單獨更新 Cookie、健康檢測
 - **設定頁面**：可視化管理執行時設定（效能、速率限制、健康檢查、帳號管理等），修改即時生效並傳播到執行時
 - **模型對應**：將請求中的模型名對應到實際使用的模型（如 gpt-4o → gemini-2.5-pro）
@@ -716,9 +714,7 @@ curl -X POST http://localhost:5918/admin/access-keys/3/reset-usage \
 
 ---
 
-## ☕ 贊賞 & 共享
-
-覺得有幫助？請作者喝杯咖啡，或加入微信交流群獲取使用幫助。完整內容請查看 [SPONSORS.md](SPONSORS.md)。
+## 參與貢獻
 
 歡迎 PR 和 Issue。
 

@@ -285,7 +285,7 @@ def test_record_token_usage_is_idempotent_within_one_request(monkeypatch, tmp_pa
      {"contents": [{"role": "user", "parts": [{"text": "hi"}]}]},
      "gemini-pro"),
     ("app.routers.responses", "/v1/responses",
-     {"model": "gemini-2.5-flash", "input": "hi"},
+     {"model": "gemini-flash", "input": "hi"},
      "gemini-flash"),
     ("app.routers.claude", "/v1/messages",
      {"model": "gemini-2.5-flash", "max_tokens": 64,

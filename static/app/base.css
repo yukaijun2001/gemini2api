@@ -720,6 +720,23 @@ tr:hover {
     margin-top: 1rem;
 }
 
+.account-models {
+    min-width: 0;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+.account-model {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0.5rem;
+}
+
+.account-model code, .account-model small {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
 /* 提供商状态网格 */
 .provider-status-grid {
     display: grid;
