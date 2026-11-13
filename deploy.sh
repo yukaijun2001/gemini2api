@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# gemini2api 一键部署。默认监听宿主 10002，容器内仍是 5918。
+# gemini2api 一键部署。默认监听宿主 10003，容器内仍是 5918。
 # Cookie、账号和运行参数在 Web 控制台配置，不用手改 .env。
 #
-#   ./deploy.sh            构建并启动
+#   ./deploy.sh            拉取 GitHub 最新代码，然后构建并启动
+#   SKIP_PULL=1 ./deploy.sh  不拉代码，直接用当前目录部署
 #   ./deploy.sh down       停止并删除容器
-#   ./deploy.sh restart    重启
+#   ./deploy.sh restart    拉取最新代码并重新部署
 #   ./deploy.sh logs       跟随日志
 #   ./deploy.sh status     查看状态
 set -euo pipefail
@@ -12,10 +13,13 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
-HOST_PORT="${HOST_PORT:-10002}"
+HOST_PORT="${HOST_PORT:-10003}"
 CONTAINER_PORT=5918
 IMAGE_NAME="${IMAGE_NAME:-gemini2api:local}"
 ACTION="${1:-up}"
+SKIP_PULL="${SKIP_PULL:-0}"
+# 可选：手动指定对外地址。不设则自动探测内网 IP 和公网 IP。
+PUBLIC_HOST="${PUBLIC_HOST:-}"
 
 OVERLAY=""
 DOCKERIGNORE_BACKUP=""
@@ -43,6 +47,99 @@ cleanup() {
   fi
 }
 trap cleanup EXIT
+
+
+
+is_private_ip() {
+  local ip="$1"
+  [[ "$ip" == 10.* || "$ip" == 192.168.* || "$ip" == 127.* || "$ip" == 169.254.* ]] && return 0
+  [[ "$ip" == 172.1[6-9].* || "$ip" == 172.2[0-9].* || "$ip" == 172.3[0-1].* ]] && return 0
+  return 1
+}
+
+detect_lan_ip() {
+  local ip=""
+  if command -v ip >/dev/null 2>&1; then
+    ip="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i <= NF; i++) if ($i == "src") { print $(i + 1); exit }}')"
+  fi
+  if [[ -z "$ip" ]] && command -v ipconfig >/dev/null 2>&1; then
+    local iface
+    for iface in en0 en1 eth0; do
+      ip="$(ipconfig getifaddr "$iface" 2>/dev/null || true)"
+      [[ -n "$ip" ]] && break
+    done
+  fi
+  if [[ -z "$ip" ]] && command -v hostname >/dev/null 2>&1; then
+    ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  fi
+  printf '%s\n' "$ip"
+}
+
+detect_public_ip() {
+  local ip="" url
+  if command -v curl >/dev/null 2>&1; then
+    for url in https://api.ipify.org https://ifconfig.me/ip https://icanhazip.com; do
+      ip="$(curl -4 -fsS --max-time 3 "$url" 2>/dev/null | tr -d '[:space:]' || true)"
+      if [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        printf '%s\n' "$ip"
+        return
+      fi
+    done
+  fi
+  printf '\n'
+}
+
+sync_repo() {
+  if [[ "$SKIP_PULL" == "1" ]]; then
+    printf '已跳过拉取代码（SKIP_PULL=1）。\n'
+    return
+  fi
+
+  need_cmd git
+  git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "当前目录不是 git 仓库，无法拉取 GitHub 代码"
+
+  local branch remote_ref before after script_backup keep_script old_sum new_sum
+  branch="$(git symbolic-ref --quiet --short HEAD || true)"
+  [[ -n "$branch" ]] || die "当前是游离 HEAD，请先切回分支再部署"
+  remote_ref="origin/${branch}"
+
+  printf '正在拉取 GitHub %s ...\n' "$remote_ref"
+  GIT_TERMINAL_PROMPT=0 git fetch --prune origin "$branch"
+  git rev-parse --verify --quiet "${remote_ref}^{commit}" >/dev/null || die "远程没有 ${remote_ref}"
+
+  before="$(git rev-parse --short HEAD)"
+  script_backup="$(mktemp)"
+  cp -p "$ROOT/deploy.sh" "$script_backup"
+  old_sum="$(cksum "$script_backup" | awk '{print $1" "$2}')"
+  keep_script=0
+  if [[ -n "$(git status --porcelain -- deploy.sh)" ]]; then
+    keep_script=1
+  fi
+
+  git reset --hard "$remote_ref"
+  git clean -fd -e /data -e /api -e /.env -e '/.env.*' -e /deploy.sh
+
+  if [[ "$keep_script" -eq 1 ]]; then
+    cp -p "$script_backup" "$ROOT/deploy.sh"
+    chmod +x "$ROOT/deploy.sh"
+    printf '保留了本地尚未提交的 deploy.sh。\n'
+  fi
+  rm -f "$script_backup"
+
+  after="$(git rev-parse --short HEAD)"
+  if [[ "$before" == "$after" ]]; then
+    printf '代码已是最新：%s\n' "$after"
+  else
+    printf '代码已更新：%s -> %s\n' "$before" "$after"
+  fi
+
+  new_sum="$(cksum "$ROOT/deploy.sh" | awk '{print $1" "$2}')"
+  if [[ "$old_sum" != "$new_sum" && -z "${DEPLOY_REEXECED:-}" ]]; then
+    printf 'deploy.sh 已随仓库更新，改用新脚本继续部署。\n'
+    export DEPLOY_REEXECED=1
+    exec "$ROOT/deploy.sh" "$ACTION"
+  fi
+}
 
 check_docker() {
   need_cmd docker
@@ -135,16 +232,36 @@ wait_healthy() {
 }
 
 print_ready() {
-  local key
+  local key lan public
   key="$(read_api_key)"
-  printf '\n已启动，直接打开控制台即可使用。\n'
-  printf '  控制台  http://127.0.0.1:%s\n' "$HOST_PORT"
+  printf '\n已启动。账号和 Cookie 在控制台「账号管理」里添加，不用改 .env。\n'
   printf '  API Key  %s\n' "$key"
-  printf '  账号和 Cookie 在控制台「账号管理」里添加，不用改 .env。\n\n'
+  if [[ -n "$PUBLIC_HOST" ]]; then
+    printf '  控制台  http://%s:%s\n\n' "$PUBLIC_HOST" "$HOST_PORT"
+    return
+  fi
+  lan="$(detect_lan_ip)"
+  public="$(detect_public_ip)"
+  printf '  本机    http://127.0.0.1:%s\n' "$HOST_PORT"
+  if [[ -n "$lan" && "$lan" != "127.0.0.1" ]]; then
+    if is_private_ip "$lan"; then
+      printf '  内网    http://%s:%s\n' "$lan" "$HOST_PORT"
+    else
+      printf '  公网    http://%s:%s\n' "$lan" "$HOST_PORT"
+    fi
+  fi
+  if [[ -n "$public" && "$public" != "$lan" && "$public" != "127.0.0.1" ]]; then
+    printf '  公网    http://%s:%s\n' "$public" "$HOST_PORT"
+  fi
+  if [[ -z "$lan" && -z "$public" ]]; then
+    printf '  未能探测到服务器 IP，请用服务器实际地址访问端口 %s。\n' "$HOST_PORT"
+  fi
+  printf '  外网打不开时，放行防火墙或安全组的 %s 端口。\n\n' "$HOST_PORT"
 }
 
 cmd_up() {
   check_docker
+  sync_repo
   ensure_env
   ensure_runtime_dirs
   write_overlay
@@ -166,16 +283,7 @@ cmd_down() {
 }
 
 cmd_restart() {
-  check_docker
-  ensure_env
-  ensure_runtime_dirs
-  write_overlay
-  compose restart
-  if wait_healthy; then
-    print_ready
-  else
-    die "重启后健康检查未通过，请执行 ./deploy.sh logs"
-  fi
+  cmd_up
 }
 
 cmd_logs() {
